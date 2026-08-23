@@ -1,0 +1,227 @@
+% ---------------------------------------------------------------------------
+%  Shared preamble for the "Вероятности и Статистика" lecture notes.
+%
+%  Used by both builds:
+%    * lecture_NN.tex   — standalone article, one lecture   (\section = top level)
+%    * lectures_full.tex — collected book, report class     (\chapter = per lecture)
+%
+%  The driver sets \numberwithin{thm}{section|chapter} after \input-ing this.
+% ---------------------------------------------------------------------------
+
+\usepackage{fontspec}
+\IfFontExistsTF{Times New Roman}
+  {\setmainfont{Times New Roman}}
+  {\setmainfont{Liberation Serif}}
+
+% Bulgarian: loads hyphenation patterns (without these TeX cannot break a single
+% Cyrillic word, which is what produced the loose lines and overfull boxes) and
+% translates the auto-generated captions ("Contents" -> "Съдържание").
+\usepackage{polyglossia}
+\setmainlanguage{bulgarian}
+\setotherlanguage{english}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{amsthm}
+% Shared probability notation. Bodies use these semantic commands exclusively.
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Var}{\mathbb{D}}
+\newcommand{\ind}{\mathbf{1}}
+\newcommand{\given}{\mid}
+\DeclareMathOperator{\Bin}{Bi}
+\DeclareMathOperator{\Poi}{Po}
+\DeclareMathOperator{\Ber}{Ber}
+\DeclareMathOperator{\Geo}{Ge}
+\DeclareMathOperator{\NegBin}{NB}
+\DeclareMathOperator{\Hyp}{HG}
+\DeclareMathOperator{\Exponential}{Exp}
+\DeclareMathOperator{\Unif}{U}
+\DeclareMathOperator{\Cov}{cov}
+% Standalone lectures do not load labels from other lecture bodies. The book
+% driver upgrades cross-lecture mentions to links after all shared setup.
+\newcommand{\crosslecture}[2]{#2}
+\usepackage[most]{tcolorbox}
+\usepackage{microtype}
+\usepackage{fancyhdr}
+
+% "г.", "т.е.", "п.с." are abbreviations, not sentence ends — suppress the
+% extra inter-sentence space LaTeX would otherwise insert after them.
+\frenchspacing
+
+\linespread{1.08}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\clubpenalty=10000       % no orphans
+\widowpenalty=10000      % no widows
+\displaywidowpenalty=10000
+
+% Long unbreakable inline-math runs (\{1,2,\dots,n\}, \text{...} spans) cannot be
+% hyphenated. Let TeX stretch a line as a last resort rather than let it stick
+% out into the margin.
+\setlength{\emergencystretch}{3em}
+
+% --- palette ---------------------------------------------------------------
+% Three reading tiers, so the page can be skimmed:
+%   gold + thick bar + star = landmark result, memorise it
+%   blue / green boxes      = ordinary definition / result
+%   hairline rule, no fill  = example or proof, skippable on a first pass
+% Each tier is distinguished by RULE WEIGHT and FILL as well as by hue, so the
+% hierarchy still reads when the document is printed in greyscale.
+\definecolor{defframe}{RGB}{38,90,160}
+\definecolor{defback}{RGB}{234,241,250}
+\definecolor{thmframe}{RGB}{34,120,70}
+\definecolor{thmback}{RGB}{233,246,238}
+\definecolor{keyframe}{RGB}{176,124,18}
+\definecolor{keyback}{RGB}{253,247,232}
+\definecolor{exrule}{RGB}{118,130,146}
+\definecolor{proofrule}{RGB}{198,203,212}
+\definecolor{suppframe}{RGB}{124,96,150}
+
+% --- figures ---------------------------------------------------------------
+% Native TikZ: vector, no external assets, and it can reuse the palette above so
+% figures read as part of the same system. Figures are NON-FLOATING: where the
+% picture is the argument (the reflection principle), a float that drifts to the
+% next page breaks the proof. Meaning is carried by line weight and dash pattern
+% as well as colour, so the figures survive greyscale like the boxes do.
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, decorations.pathreplacing}
+\usepackage{booktabs}   % \toprule/\midrule/\bottomrule in the statistical tables
+\usepackage{longtable}  % the Phi table is taller than a page can hold unbroken
+\usepackage{caption}
+\captionsetup{font=small, labelfont=bf, skip=6pt}
+% NB: put \label{} INSIDE the caption argument -- \captionof steps the figure
+% counter, so a label placed before it would capture the wrong number.
+\newenvironment{lecfigure}[1][]
+  {\par\medskip\noindent\begin{minipage}{\linewidth}\centering
+   \def\lecfigcap{#1}}
+  {\ifx\lecfigcap\empty\else\captionof{figure}{\lecfigcap}\fi
+   \end{minipage}\par\medskip}
+\tikzset{
+  axisline/.style={gray!70, -{Stealth[length=2mm]}, line width=0.4pt},
+  walk/.style={thmframe, line width=1pt, line join=round},
+  walkrefl/.style={keyframe, line width=1pt, line join=round,
+                   dash pattern=on 3pt off 2pt},
+  cdfstep/.style={defframe, line width=1pt},
+  guide/.style={gray!55, line width=0.4pt, dash pattern=on 2pt off 2pt},
+}
+
+% --- numbered statement environments ---------------------------------------
+% One shared counter for all five, so a reader scanning for "Твърдение 4.7"
+% never has to guess which of five sequences it belongs to.
+\newtheoremstyle{lecstyle}
+  {\topsep}{\topsep}     % space above / below
+  {\normalfont}          % body font — upright; italic Cyrillic at 11pt is hard to read
+  {0pt}                  % indent
+  {\bfseries}            % head font
+  {.}                    % punctuation after head
+  {0.5em}                % space after head
+  {}                     % default head spec
+\theoremstyle{lecstyle}
+
+\newtheorem{thm}{Теорема}
+\newtheorem{defn}[thm]{Дефиниция}
+\newtheorem{prop}[thm]{Твърдение}
+\newtheorem{lem}[thm]{Лема}
+\newtheorem{cor}[thm]{Следствие}
+
+% Landmark variants. Same counter, same printed name — the mathematical status
+% is identical; only the study weight differs. \keythm{...} reads exactly like
+% \thm{...} to a reader who ignores the colour.
+\newtheoremstyle{leckey}
+  {\topsep}{\topsep}{\normalfont}{0pt}{\bfseries}{.}{0.5em}
+  {\textcolor{keyframe}{\ensuremath{\bigstar}}\ \thmname{#1}\thmnumber{ #2}\thmnote{ (#3)}}
+\theoremstyle{leckey}
+\newtheorem{keythm}[thm]{Теорема}
+\newtheorem{keydefn}[thm]{Дефиниция}
+\newtheorem{keylem}[thm]{Лема}
+
+\newtheoremstyle{lecremark}
+  {\topsep}{\topsep}{\normalfont}{0pt}{\itshape}{.}{0.5em}{}
+\theoremstyle{lecremark}
+\newtheorem{remark}[thm]{Забележка}
+
+% Material that is NOT part of the recorded 2021/22 lectures — taken from the
+% official course documents. Dashed violet frame and a dagger, so it can never
+% be mistaken for something the lecturer said.
+\newtheoremstyle{lecsupp}
+  {\topsep}{\topsep}{\normalfont}{0pt}{\bfseries\color{suppframe}}{.}{0.5em}
+  {\color{suppframe}\ensuremath{\dagger}\ \thmname{#1}\thmnumber{ #2}\thmnote{ (#3)}}
+\theoremstyle{lecsupp}
+\newtheorem{supp}[thm]{Допълнение}
+
+% Examples are marked to be SKIPPED on a first pass: recessive slate head with a
+% ▷ lead-in, no fill, thin left rule.
+\newtheoremstyle{lecexample}
+  {\topsep}{\topsep}{\normalfont}{0pt}{\bfseries\color{exrule}}{.}{0.5em}
+  {\color{exrule}\ensuremath{\triangleright}\ \thmname{#1}\thmnumber{ #2}\thmnote{ (#3)}}
+\theoremstyle{lecexample}
+\newtheorem{example}[thm]{Пример}
+
+% Definitions in blue, everything provable in green. Proofs stay outside.
+% `lines before break` is what keeps a statement whole. tcolorbox first asks
+% whether the box fits in the space left on the page; only if it does not does
+% this threshold apply, and then it ejects the page and re-asks on a fresh one.
+% Set just under a full text height (684pt / 14.7pt per line = 46.6 lines), so
+% "does not fit here" always becomes "start it at the top of the next page".
+% A box that is genuinely taller than a page still breaks -- but from the top of
+% a page, never with a two-line stub stranded under the previous paragraph.
+\newcommand{\lecbreakminlines}{45}
+% ...but only when ejecting the page would actually achieve something. A box
+% that is taller than the text block breaks no matter which page it starts on,
+% so pushing it forward buys nothing and strands up to three quarters of a page.
+% tcolorbox has just measured the box into \tcb@h@total when this runs, so the
+% question can be answered exactly: over-tall boxes keep the default threshold
+% and start where they stand, filling the page to its foot before they continue.
+\usepackage{etoolbox}
+\makeatletter
+\apptocmd{\tcb@comp@h@total@standalone}
+  {\ifdim\tcb@h@total>\textheight\relax\def\kvtcb@breakminlines{2}\fi}
+  {}{\PackageError{preamble}{could not patch tcolorbox height hook}{}}
+\makeatother
+\tcbset{lecbox/.style={enhanced, breakable, lines before break=\lecbreakminlines,
+    arc=2.4mm, boxrule=0.7pt,
+    left=2.6mm, right=2.6mm, top=1.8mm, bottom=1.8mm, before skip=0.6em,
+    after skip=0.6em}}
+\tcolorboxenvironment{defn}{lecbox, colback=defback, colframe=defframe}
+\tcolorboxenvironment{thm} {lecbox, colback=thmback, colframe=thmframe}
+\tcolorboxenvironment{prop}{lecbox, colback=thmback, colframe=thmframe}
+\tcolorboxenvironment{lem} {lecbox, colback=thmback, colframe=thmframe}
+\tcolorboxenvironment{cor} {lecbox, colback=thmback, colframe=thmframe}
+
+% Landmark tier: gold, plus a heavy left bar so it is still unmistakable in
+% greyscale and when flicking through at speed.
+\tcbset{leckeybox/.style={lecbox, colback=keyback, colframe=keyframe,
+    leftrule=2.2mm}}
+\tcolorboxenvironment{keythm} {leckeybox}
+\tcolorboxenvironment{keydefn}{leckeybox}
+\tcolorboxenvironment{keylem} {leckeybox}
+
+% Supplement tier: dashed violet frame, no fill — visibly outside the lecture record.
+\tcolorboxenvironment{supp}{enhanced, breakable, lines before break=\lecbreakminlines,
+  colback=white,
+  colframe=suppframe, boxrule=0.5pt, frame style={dash pattern=on 3pt off 2pt},
+  arc=2.4mm, left=2.6mm, right=2.6mm, top=1.8mm, bottom=1.8mm,
+  before skip=0.6em, after skip=0.6em}
+
+% Skippable tier: no fill, no frame, just a marginal rule the eye can run past.
+% Examples get a visible slate rule; proofs get a fainter one still.
+\tcolorboxenvironment{example}{blanker, breakable,
+  borderline west={1.2pt}{0pt}{exrule},
+  left=4mm, top=1mm, bottom=1mm, before skip=0.7em, after skip=0.7em}
+\tcolorboxenvironment{proof}{blanker, breakable,
+  borderline west={0.6pt}{0pt}{proofrule},
+  left=4mm, top=0.6mm, bottom=0.6mm, before skip=0.7em, after skip=0.7em}
+
+% Proofs: unboxed, with an automatic flush-right QED on every one of them.
+% The driver localizes \proofname after \begin{document}, once polyglossia has
+% installed its Bulgarian captions.
+\renewcommand{\qedsymbol}{$\square$}
+
+% --- links ------------------------------------------------------------------
+\usepackage{hyperref}   % load last
+\hypersetup{
+  colorlinks=true, linkcolor=defframe, urlcolor=defframe, citecolor=defframe,
+  linktoc=all, bookmarksnumbered=true, bookmarksopen=true, unicode=true,
+  bookmarksdepth=3,   % printed TOC stays lean; the PDF outline keeps full depth
+  pdfauthor={}}
