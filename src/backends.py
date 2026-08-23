@@ -106,6 +106,49 @@ def _call_agy(prompt, timeout=600):
     return res.stdout
 
 
+def _call_codex(prompt, image_path=None, model=None, timeout=600,
+                output_schema=None, reasoning="low"):
+    """Call the Codex CLI in non-interactive mode.
+
+    Unlike the agy path, Codex attaches images properly (`-i`) instead of being
+    asked to go and read a file, and `--output-schema` makes it return JSON of a
+    fixed shape — so no scraping of a chat transcript. `-o` writes just the
+    final message, which is the only part we want.
+
+    Sandboxed read-only and `--ephemeral`: this is a transcription call, it has
+    no business writing files or persisting a session.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        last = os.path.join(td, "last.txt")
+        cmd = ["codex", "exec", "--ephemeral", "--skip-git-repo-check",
+               "-s", "read-only", "--color", "never", "-o", last]
+        # Transcription is perception, not deduction — high reasoning effort
+        # costs minutes per page and buys nothing here.
+        if reasoning:
+            cmd += ["-c", "model_reasoning_effort=%s" % reasoning]
+        if model:
+            cmd += ["-m", model]
+        if image_path:
+            cmd += ["-i", os.path.abspath(image_path)]
+        if output_schema:
+            cmd += ["--output-schema", os.path.abspath(output_schema)]
+        cmd += [prompt]
+        # stdin MUST be closed: with a prompt given as an argument Codex still
+        # checks stdin for extra input, and an inherited open pipe makes it wait
+        # forever ("Reading additional input from stdin...").
+        res = subprocess.run(cmd, stdin=subprocess.DEVNULL,
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             text=True, encoding="utf-8", timeout=timeout)
+        if os.path.exists(last):
+            out = open(last, encoding="utf-8").read().strip()
+            if out:
+                return out
+        if res.returncode != 0:
+            raise RuntimeError("codex exec failed (exit %d): %s"
+                               % (res.returncode, (res.stderr or "")[-400:]))
+        return res.stdout
+
+
 def _call_gemini(prompt, api_key, model, image_path=None, timeout=300):
     model = model or "gemini-2.5-flash"
     url = (
@@ -184,6 +227,9 @@ class LLMClient:
 
     def complete(self, prompt, system=None):
         if self.mode == "cloud":
+            if self.provider == "codex":
+                text = prompt if not system else system + "\n\n" + prompt
+                return _call_codex(text, model=self.model)
             if self.provider == "agy":
                 return _call_agy(prompt)
             if self.provider == "gemini":
@@ -207,7 +253,8 @@ class LLMClient:
         # mlx_lm.server serves whichever model is loaded and ignores/echoes the
         # `model` field; send a non-empty placeholder when none was given.
         model = self.model or "local"
-        return _call_openai_chat(self.base_url, self.api_key, model, messages)
+        return _call_openai_chat(self.base_url, self.api_key, model, messages,
+                                 timeout=self.timeout)
 
     def describe(self):
         return f"LLM[{self.mode}/{self.provider if self.mode=='cloud' else self.base_url}:{self.model}]"
@@ -229,8 +276,11 @@ class VLMClient:
     """
 
     def __init__(self, mode="local", model=None, base_url=None, api_key=None,
-                 provider="agy", device="auto", backend=None):
+                 provider="agy", device="auto", backend=None, timeout=600,
+                 output_schema=None):
         self.mode = mode
+        self.timeout = timeout
+        self.output_schema = output_schema
         self.device = resolve_device(device)
         self.model = model
         self.base_url = base_url or DEFAULT_LOCAL_BASE_URL.get(self.device)
@@ -267,6 +317,10 @@ class VLMClient:
     # --- public ------------------------------------------------------------ #
     def read_image(self, image_path, prompt):
         if self.mode == "cloud":
+            if self.provider == "codex":
+                return _call_codex(prompt, image_path=image_path,
+                                   model=self.model, timeout=self.timeout,
+                                   output_schema=self.output_schema)
             if self.provider == "agy":
                 meta = (
                     f"Look at the image file at this absolute path: {os.path.abspath(image_path)}\n\n"
@@ -275,7 +329,8 @@ class VLMClient:
                 )
                 return _call_agy(meta)
             if self.provider == "gemini":
-                return _call_gemini(prompt, self.api_key, self.model, image_path=image_path)
+                return _call_gemini(prompt, self.api_key, self.model,
+                                    image_path=image_path, timeout=self.timeout)
             raise ValueError(f"Unknown cloud VLM provider: {self.provider}")
 
         # local
@@ -290,7 +345,8 @@ class VLMClient:
             ],
         }]
         model = self.model or "local"
-        return _call_openai_chat(self.base_url, self.api_key, model, messages)
+        return _call_openai_chat(self.base_url, self.api_key, model, messages,
+                                 timeout=self.timeout)
 
     def describe(self):
         tgt = self.provider if self.mode == "cloud" else f"{self.backend}:{self.base_url}"

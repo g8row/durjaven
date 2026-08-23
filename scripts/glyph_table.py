@@ -113,8 +113,9 @@ def render(counter, dpi=600, pad=1.5):
 def identify(index, top, args):
     from backends import VLMClient
     from vlm_ocr import _extract_json
-    client = VLMClient(mode=args.mode, model=args.model,
+    client = VLMClient(mode=args.mode, model=args.model, backend=args.backend,
                        provider=args.provider, base_url=args.base_url)
+    print("backend:", client.describe())
     os.makedirs(DATA, exist_ok=True)
     table = json.load(open(TABLE)) if os.path.exists(TABLE) else {}
     ranked = sorted(index.items(), key=lambda kv: -kv[1]["count"])
@@ -152,9 +153,10 @@ def main():
                     help="only the N commonest glyphs")
     ap.add_argument("--dpi", type=int, default=600)
     ap.add_argument("--force", action="store_true")
-    ap.add_argument("--mode", default="cloud")
+    ap.add_argument("--mode", default="local")
+    ap.add_argument("--backend", default=None, help="local backend: mlx-vlm | openai")
     ap.add_argument("--model", default=None)
-    ap.add_argument("--provider", default="agy")
+    ap.add_argument("--provider", default="gemini")
     ap.add_argument("--base-url", default=None)
     args = ap.parse_args()
 

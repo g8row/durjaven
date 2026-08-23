@@ -1,0 +1,19 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["items"],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "content"],
+        "properties": {
+          "type": {"type": "string", "enum": ["text", "equation", "code"]},
+          "content": {"type": "string"}
+        }
+      }
+    }
+  }
+}
