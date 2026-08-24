@@ -169,7 +169,8 @@ photo-desk page:
 | mimo-v2.5-free | 80% | 14% → 0% | collapses on the hard tier |
 | nemotron-nano-12b-vl | 85% | 43% | reads ∀ as ×, z as 2 |
 | qwen2.5vl:7b | 79% | 29% | will not segment |
-| qwen3-vl:8b | 0% | 0% | thinking loop, empty output |
+| qwen3-vl:8b (Ollama) | 0% | 0% | thinking loop, empty output |
+| **Qwen3-VL-8B-Instruct-3bit (MLX)** | 77% | 37% | the same family, working — ~30 s/page, fully offline |
 | Qwen3.5-9B-8bit (MLX) | — | — | correct but 552 s/page: 55 h for the corpus |
 
 Two things that reading a single page would not have shown. mimo looks fine on
@@ -181,6 +182,20 @@ the reference" is a convenience, not a guarantee.
 ox-alpha is slow — it answers through an agent loop, so budget ~300–420 s per
 page — but it is free until 27 August 2026, which is the window this run has to
 fit inside. Six workers, resumable.
+
+The Ollama/MLX split is worth keeping in mind when reading that table. Under
+Ollama, `qwen3-vl:8b` scored zero: it burned its whole budget thinking and
+returned an empty string, which reads as a model that cannot do the task. The
+same family under MLX, in its Instruct build, transcribes the page correctly at
+77%/37% in about thirty seconds. A zero in a backend table is as likely to be a
+runtime or a chat template as a model, and is worth one retry on another
+runtime before being believed. MLX is also simply the right runtime on Apple
+silicon.
+
+**Local fallback.** `Qwen3-VL-8B-Instruct-3bit` under MLX is the only fully
+offline option that is both correct and fast enough to matter. 37% on
+mathematics is too low to write chapters from, but it costs nothing, needs no
+network, and is a reasonable second opinion where two sources disagree.
 
 
 Two independent jobs, both through `backends.py` so either can run local or

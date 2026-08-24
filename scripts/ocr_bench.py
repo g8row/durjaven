@@ -45,8 +45,9 @@ KNOWN = [
     "zen:hy3-free", "zen:mimo-v2.5-free", "zen:laguna-s-2.1-free",
     "zen:deepseek-v4-flash-free", "zen:x-preview-f-free",
     "zen:qwen3.6-plus", "zen:glm-5.2",
-    "ollama:gemma3:4b", "ollama:gemma3:12b", "ollama:qwen2.5vl:7b",
+    "ollama:gemma3:4b", "ollama:qwen2.5vl:7b",
     "nvidia:nvidia/nemotron-nano-12b-v2-vl",
+    "mlx:mlx-community/Qwen3-VL-8B-Instruct-3bit",
     "mlx:mlx-community/Qwen3.5-9B-8bit",
 ]
 
