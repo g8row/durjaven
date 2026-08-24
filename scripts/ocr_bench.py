@@ -30,6 +30,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "run", "ocr")
@@ -56,11 +57,13 @@ def tag_of(spec):
         .strip("_").lower()
 
 
-def run_spec(spec, unit, pages, timeout, force):
+def run_spec(spec, unit, pages, timeout, force, deadline=None):
     """Invoke ocr_pages.py for one spec. Returns its output tag."""
     prov, _, model = spec.partition(":")
     tag = tag_of(spec)
-    cmd = [os.path.join(ROOT, ".venv", "bin", "python"),
+    # -u: without it the child's progress is buffered and a long bench looks
+    # indistinguishable from a hung one.
+    cmd = [os.path.join(ROOT, ".venv", "bin", "python"), "-u",
            os.path.join(ROOT, "scripts", "ocr_pages.py"),
            "--unit", unit, "--out-tag", tag, "--timeout", str(timeout),
            # Fail fast: a model that cannot take an image 400s on every page,
@@ -96,12 +99,14 @@ def run_spec(spec, unit, pages, timeout, force):
 
     print("\n=== %s ===" % spec, flush=True)
     # Hard ceiling per spec, so one stalled backend cannot hold up the bench.
-    budget = timeout * (pages or 1) + 120
+    cap = timeout * (pages or 1) + 60
+    if deadline is not None:
+        cap = min(cap, max(15, int(deadline - time.time())))
     try:
-        r = subprocess.run(cmd, timeout=budget)
+        r = subprocess.run(cmd, stdin=subprocess.DEVNULL, timeout=cap)
         return tag, r.returncode
     except subprocess.TimeoutExpired:
-        print("  %s ABANDONED after %ds" % (spec, budget))
+        print("  %s ABANDONED after %ds" % (spec, cap))
         return tag, -1
 
 
@@ -124,11 +129,19 @@ def parts(doc):
 
 
 def sim(a, b):
+    """Similarity of two transcriptions, 0..1.
+
+    autojunk MUST be off. SequenceMatcher's heuristic treats any element
+    appearing in more than 1% of a sequence longer than 200 as junk and skips
+    it — on a page of prose that is every space and every common letter, and
+    two nearly identical transcriptions score 0.15 instead of 0.97. It made a
+    perfectly good model look like the worst in the table.
+    """
     if not a and not b:
         return 1.0
     if not a or not b:
         return 0.0
-    return difflib.SequenceMatcher(None, a, b).ratio()
+    return difflib.SequenceMatcher(None, a, b, autojunk=False).ratio()
 
 
 def report(unit, ref_tag, pages):
@@ -166,7 +179,14 @@ def main():
     ap.add_argument("--spec", action="append", default=[])
     ap.add_argument("--all-known", action="store_true")
     ap.add_argument("--ref", default="codex")
-    ap.add_argument("--timeout", type=int, default=300)
+    # A model that cannot transcribe one page in two minutes is not a
+    # candidate for 371 of them, so the bench does not wait around to find out.
+    ap.add_argument("--timeout", type=int, default=120,
+                    help="seconds per page for one spec")
+    ap.add_argument("--budget", type=int, default=900,
+                    help="hard ceiling in seconds for the WHOLE bench; without "
+                         "it, N specs times a generous per-page timeout quietly "
+                         "becomes hours")
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--report", action="store_true", help="score what already exists")
     ap.add_argument("--list-specs", action="store_true")
@@ -178,9 +198,14 @@ def main():
         return
 
     if not args.report:
+        deadline = time.time() + args.budget
         for spec in (KNOWN if args.all_known else args.spec):
+            if time.time() >= deadline:
+                print("\n[budget of %ds spent — skipping the rest]" % args.budget)
+                break
             try:
-                run_spec(spec, args.unit, args.pages, args.timeout, args.force)
+                run_spec(spec, args.unit, args.pages, args.timeout, args.force,
+                         deadline)
             except Exception as e:
                 print("  %s FAILED: %s" % (spec, str(e)[:160]))
 
