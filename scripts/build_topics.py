@@ -1,212 +1,225 @@
 #!/usr/bin/env python3
-"""NOT YET ADAPTED — copied verbatim from lec2tex, see docs/PLAN.md §1.
+"""Generate the LaTeX drivers for the 35-question book and compile them.
 
-This still points at the lec2tex layout (refs/pesho-stat-1.pdf, lectures/) and
-will not run here until it is pointed at sources/temi/ and sources/di/. Kept in
-this state deliberately so the diff against the original stays readable while
-it is being adapted.
+Source of truth is topics/bodies/topic_NN.tex, hand-edited, plus the shared
+topics/preamble.tex. This writes the thin drivers around them:
+
+  topics/topic_NN.tex     standalone article, one question per PDF
+  topics/book.tex         the collected book: one title page, one table of
+                          contents, continuous pagination, the конспект's own
+                          three parts, a \\chapter per question
+
+and moves the result to the repository root as darzhaven-izpit-kn.pdf.
+
+Chapters follow `topics/manifest.json`, which follows the official конспект —
+not the filenames of the sources, which predate the June 2025 revision and
+disagree with it (docs/CORPUS.md §3).
+
+A question with no body yet gets a generated placeholder carrying its official
+annotation: what the examiners require, what sources exist for it, and what is
+known to be missing. That means the book compiles from the first day and reads
+as a specification of the work remaining rather than failing to build at all —
+and the two questions with no sources say so in the text instead of silently
+being absent.
+
+  python3 scripts/build_topics.py             # drivers + the book
+  python3 scripts/build_topics.py --gen-only  # write drivers, do not compile
+  python3 scripts/build_topics.py --all       # + a standalone PDF per question
 """
-
-"""Generate the LaTeX drivers and compile everything.
-
-Source of truth is lectures/bodies/lecture_NN.tex (hand-edited) plus the shared
-lectures/preamble.tex. This script writes the thin drivers around them:
-
-  lectures/lecture_NN.tex   standalone article, one lecture per PDF
-  lectures/lectures_full.tex   the collected book: one title page, ONE master
-                               table of contents, continuous pagination,
-                               running heads, per-lecture \\chapter
-
-The compiled book does not stay in lectures/ — it is moved to the repository
-root as probability-statistics-bg.pdf, which is the deliverable.
-
-and then runs tectonic over whichever of those you ask for.
-
-  python3 scripts/build_lectures.py            # drivers + full book
-  python3 scripts/build_lectures.py --all      # drivers + book + 15 singles
-  python3 scripts/build_lectures.py --gen-only # write drivers, don't compile
-"""
-import os, subprocess, sys
+import argparse
+import json
+import os
+import re
+import shutil
+import unicodedata
+import subprocess
+import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LEC = os.path.join(ROOT, "lectures")
-BOOK_PDF = os.path.join(ROOT, "probability-statistics-bg.pdf")
+TOPICS = os.path.join(ROOT, "topics")
+BODIES = os.path.join(TOPICS, "bodies")
+BOOK_PDF = os.path.join(ROOT, "darzhaven-izpit-kn.pdf")
+MANIFEST = os.path.join(TOPICS, "manifest.json")
+ANNOT = os.path.join(ROOT, "docs", "konspekt_annotations.json")
 
-TITLES = {
-    "01": "Въведение. Случайни експерименти, събития и \\texorpdfstring{$\\sigma$}{σ}-алгебри",
-    "02": "Аксиоми на вероятността. Дискретна и геометрична вероятност",
-    "03": "Условна вероятност, независимост и формула на Бейс",
-    "04": "Случайни величини. Индикатори и дискретни случайни величини",
-    "05": "Функция на разпределение. Математическо очакване и дисперсия",
-    "06": "Пораждащи функции и основни дискретни разпределения",
-    "07": "Теорема на Поасон. Хипергеометрично разпределение, ковариация и корелация",
-    "08": "Условно математическо очакване. Непрекъснати случайни величини",
-    "09": "Непрекъснати разпределения. Гама и хи-квадрат разпределение",
-    "10": "Видове сходимост. Неравенство на Чебишов и закони за големите числа",
-    "11": "Централна гранична теорема и функции на моментите",
-    "12": "Точкови оценки. Максимално правдоподобие и метод на моментите",
-    "13": "Доверителни интервали и проверка на хипотези",
-    "14": "Линейна регресия",
-    "15": "Комбинаторика и просто случайно блуждаене",
-}
-NUMS = ["%02d" % i for i in range(1, 16)]
+# The конспект's own division. Chapter numbers are question numbers.
+PARTS = [
+    (1, 8, "Основи на компютърните науки"),
+    (9, 27, "Ядро на компютърните науки"),
+    (28, 35, "Математика и приложения"),
+]
 
-# Sessions that are not lectures. 15 is the combinatorics упражнение that was
-# recorded into the same playlist; it keeps its number (and every cross-reference)
-# but is labelled for what it is.
-SESSION_KIND = {"15": "Упражнение"}
-
-# Plain-text forms for PDF metadata / running heads (no math, no macros):
-# \texorpdfstring{<tex>}{<pdf>} collapses to its second argument.
-import re as _re
-PLAIN = {n: _re.sub(r"\\texorpdfstring\{[^{}]*\}\{([^{}]*)\}", r"\1", t)
-         for n, t in TITLES.items()}
-
-AUTOGEN = ("%% AUTO-GENERATED by scripts/build_lectures.py — do not edit.\n"
-           "%% Edit lectures/bodies/lecture_%s.tex or lectures/preamble.tex instead.\n")
+AUTOGEN = ("%% AUTO-GENERATED by scripts/build_topics.py — do not edit.\n"
+           "%% Edit topics/bodies/topic_%s.tex or topics/preamble.tex instead.\n")
 
 
-def standalone(n):
-    extra = ("\n\\section*{Организационна бележка}\n"
-             "\\input{bodies/exam_note}\n" if n == "14" else "")
-    return AUTOGEN % n + r"""\documentclass[11pt]{article}
+def tex_escape(s):
+    # The конспект sets variables in Mathematical Italic (U+1D400 block). No
+    # text face carries those, so they come out as tofu boxes — the annotation
+    # for question 11 rendered "i-тата двойка е ▨▨▨". NFKC folds them onto
+    # their Latin base letters, which is what the surrounding prose is anyway.
+    s = unicodedata.normalize("NFKC", s)
+    for a, b in (("\\", "\\textbackslash{}"), ("&", "\\&"), ("%", "\\%"),
+                 ("$", "\\$"), ("#", "\\#"), ("_", "\\_"),
+                 ("{", "\\{"), ("}", "\\}"), ("~", "\\textasciitilde{}"),
+                 ("^", "\\textasciicircum{}")):
+        s = s.replace(a, b)
+    return s
+
+
+def load():
+    man = json.load(open(MANIFEST))["topics"]
+    ann = json.load(open(ANNOT)) if os.path.exists(ANNOT) else {}
+    return man, ann
+
+
+def placeholder(n, meta, ann):
+    """A body for a question not yet written, stating what it must contain."""
+    src = []
+    if meta.get("pdf"):
+        src.append("PDF \\texttt{%s}" % tex_escape(meta["pdf"]))
+    if meta.get("photos"):
+        src.append("снимки \\texttt{%s}" % tex_escape(meta["photos"]))
+    for e in meta.get("extra", []):
+        src.append("\\texttt{%s}" % tex_escape(e))
+    sources = ", ".join(src) if src else "\\textbf{няма източник}"
+
+    body = [AUTOGEN % n,
+            "%% Placeholder. Replace with the written chapter.\n"]
+    if meta.get("confidence") == "gap":
+        body.append(
+            "\\begin{supp}[Липсващ източник]\n"
+            "За този въпрос липсва какъвто и да е източник в наличния материал. "
+            "Съдържанието по-долу е само формулировката от конспекта — "
+            "главата предстои да бъде написана по друг източник.\n"
+            "\\end{supp}\n\n")
+    body.append("\\textit{Източници:} %s\n\n" % sources)
+    if meta.get("note"):
+        body.append("\\begin{supp}[Бележка към картографирането]\n%s\n"
+                    "\\end{supp}\n\n" % tex_escape(meta["note"]))
+    a = ann.get(str(n), "")
+    if a:
+        # The annotation is the specification: what the examiners ask for.
+        body.append("\\subsection*{Анотация от конспекта}\n")
+        body.append(tex_escape(a) + "\n")
+    return "".join(body)
+
+
+def ensure_bodies(man, ann):
+    os.makedirs(BODIES, exist_ok=True)
+    made = 0
+    for n, meta in man.items():
+        p = os.path.join(BODIES, "topic_%02d.tex" % int(n))
+        if os.path.exists(p):
+            continue
+        open(p, "w").write(placeholder(int(n), meta, ann))
+        made += 1
+    return made
+
+
+def standalone(n, title):
+    return AUTOGEN % ("%02d" % n) + r"""\documentclass[11pt]{article}
 \usepackage[a4paper, margin=1in]{geometry}
 \input{preamble}
-%% Match the collected book: its chapter number is the lecture number, while
-%% statement and equation counters run continuously within that chapter.
-\renewcommand{\thesection}{%(n)s.\arabic{section}}
-\renewcommand{\thethm}{%(n)s.\arabic{thm}}
-\renewcommand{\theequation}{%(n)s.\arabic{equation}}
-
-\hypersetup{pdftitle={%(kind)s %(n)s. %(plain)s}}
-
-\pagestyle{fancy}
-\fancyhf{}
-\fancyhead[L]{\small\itshape %(kind)s %(n)s}
+%% Match the collected book: the chapter number is the question number, while
+%% statement and equation counters run continuously within it.
+\renewcommand{\thesection}{%(n)d.\arabic{section}}
+\renewcommand{\thethm}{%(n)d.\arabic{thm}}
+\renewcommand{\theequation}{%(n)d.\arabic{equation}}
+\hypersetup{pdftitle={Въпрос %(n)d. %(plain)s}}
+\pagestyle{fancy}\fancyhf{}
+\fancyhead[L]{\small\itshape Въпрос %(n)d}
 \fancyhead[R]{\small\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
-
 \begin{document}
-
-%% Polyglossia installs captions at \begin{document}; localize afterwards.
 \renewcommand{\proofname}{Доказателство}
-
 \begin{center}
-  {\Large\bfseries %(kind)s %(n)s.\ }{\Large %(title)s}
+  {\Large\bfseries Въпрос %(n)d.\ }{\Large %(title)s}
 \end{center}
 \vspace{1.2em}
-
-\input{bodies/lecture_%(nn)s}
-%(extra)s
-
+\input{bodies/topic_%(nn)02d}
 \end{document}
-""" % {"n": str(int(n)), "nn": n, "title": TITLES[n], "plain": PLAIN[n],
-       "extra": extra, "kind": SESSION_KIND.get(n, "Лекция")}
+""" % {"n": n, "nn": n, "title": title, "plain": title}
 
 
-def _chapter(n):
-    kind = SESSION_KIND.get(n)
-    if kind is None:
-        return "\\chapter{%s}\n\\input{bodies/lecture_%s}\n" % (TITLES[n], n)
-    return ("\\renewcommand{\\chaptername}{%s}\n"
-            "\\chapter{%s}\n"
-            "\\renewcommand{\\chaptername}{Лекция}\n"
-            "\\input{bodies/lecture_%s}\n" % (kind, TITLES[n], n))
-
-
-def full_book():
-    chapters = "\n".join(_chapter(n) for n in NUMS)
-    return ("% AUTO-GENERATED by scripts/build_lectures.py — do not edit.\n"
-            "% Edit lectures/bodies/*.tex or lectures/preamble.tex instead.\n"
+def book(man):
+    chapters = []
+    for lo, hi, part in PARTS:
+        chapters.append("\\part{%s}" % part)
+        for n in range(lo, hi + 1):
+            meta = man.get(str(n))
+            if not meta:
+                continue
+            chapters.append("\\chapter{%s}\n\\input{bodies/topic_%02d}"
+                            % (meta["title"], n))
+    return ("% AUTO-GENERATED by scripts/build_topics.py — do not edit.\n"
+            "% Edit topics/bodies/*.tex or topics/preamble.tex instead.\n"
             + r"""\documentclass[11pt,openany]{report}
 \usepackage[a4paper, margin=1in, top=1.1in, bottom=1.1in]{geometry}
 \input{preamble}
-
-%% (Caption names are set at the top of the document body — polyglossia installs
-%%  its Bulgarian captions at \begin{document} and would overwrite preamble
-%%  \renewcommand declarations.)
 \numberwithin{thm}{chapter}
-\numberwithin{equation}{chapter}
-
-%% Master contents lists lectures and their sections; the PDF bookmark tree
-%% still carries the full subsection depth.
-\setcounter{tocdepth}{1}
-\setcounter{secnumdepth}{2}
-
-\hypersetup{pdftitle={Вероятности и Статистика — лекционни записки}}
-
-\pagestyle{fancy}
-\fancyhf{}
-\fancyhead[L]{\small\itshape\nouppercase{\leftmark}}
+\renewcommand{\chaptername}{Въпрос}
+\hypersetup{pdftitle={Държавен изпит по Компютърни науки — записки}}
+\pagestyle{fancy}\fancyhf{}
+\fancyhead[L]{\small\itshape\leftmark}
 \fancyhead[R]{\small\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
-\fancypagestyle{plain}{\fancyhf{}\fancyhead[R]{\small\thepage}%
-  \renewcommand{\headrulewidth}{0pt}}
-
 \begin{document}
-
-%% Lectures are the chapters of this book.
-\renewcommand{\chaptername}{Лекция}
 \renewcommand{\proofname}{Доказателство}
-\renewcommand{\crosslecture}[2]{\hyperref[#1]{#2}}
-\hypersetup{pageanchor=false}
-
 \begin{titlepage}
-\centering
-\vspace*{5cm}
-{\Huge\bfseries Вероятности и Статистика\par}
-\vspace{1.2cm}
-{\Large Лекционни записки\par}
-\vspace{0.5cm}
-{\large Специалност „Софтуерно инженерство“, 2021/2022\par}
-\vspace{2.5cm}
-{\large 14 лекции и едно упражнение\par}
+\centering\vspace*{3cm}
+{\Huge\bfseries Държавен изпит\par}\vspace{0.6cm}
+{\LARGE Компютърни науки\par}\vspace{2cm}
+{\large Записки по конспекта от 30.06.2025\par}
+\vspace{0.4cm}
+{\small ФМИ, Софийски университет „Св. Климент Охридски“\par}
 \vfill
 \end{titlepage}
-
-\hypersetup{pageanchor=true}
-\pagenumbering{roman}
 \tableofcontents
-\input{bodies/frontmatter}
-\clearpage
-\pagenumbering{arabic}
+\cleardoublepage
+""" + "\n\n".join(chapters) + "\n\\end{document}\n")
 
-"""
-            + chapters
-            + "\n\\appendix\n"
-              "\\renewcommand{\\chaptername}{Приложение}\n"
-              "\\input{bodies/formulas}\n"
-              "\\input{bodies/tables}\n"
-            + "\n\\end{document}\n")
+
+def compile_tex(name):
+    r = subprocess.run(["tectonic", "-X", "compile", name],
+                       cwd=TOPICS, capture_output=True, text=True)
+    if r.returncode != 0:
+        tail = (r.stderr or "")[-2500:]
+        print("BUILD FAILED for %s:\n%s" % (name, tail))
+        return False
+    return True
 
 
 def main():
-    args = sys.argv[1:]
-    for n in NUMS:
-        open(os.path.join(LEC, "lecture_%s.tex" % n), "w", encoding="utf-8").write(standalone(n))
-    open(os.path.join(LEC, "lectures_full.tex"), "w", encoding="utf-8").write(full_book())
-    print("wrote 15 standalone drivers + lectures_full.tex")
-    if "--gen-only" in args:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--gen-only", action="store_true")
+    ap.add_argument("--all", action="store_true",
+                    help="also build one standalone PDF per question")
+    args = ap.parse_args()
+
+    man, ann = load()
+    made = ensure_bodies(man, ann)
+    if made:
+        print("wrote %d placeholder bodies" % made)
+
+    for n, meta in man.items():
+        open(os.path.join(TOPICS, "topic_%02d.tex" % int(n)), "w").write(
+            standalone(int(n), meta["title"]))
+    open(os.path.join(TOPICS, "book.tex"), "w").write(book(man))
+    print("wrote %d drivers + book.tex" % len(man))
+    if args.gen_only:
         return
 
-    targets = ["lectures_full.tex"]
-    if "--all" in args:
-        targets += ["lecture_%s.tex" % n for n in NUMS]
-    for t in targets:
-        print("compiling", t, flush=True)
-        r = subprocess.run(["tectonic", "-X", "compile", t], cwd=LEC,
-                           capture_output=True, text=True)
-        warn = [l for l in r.stderr.splitlines() if "Overfull" in l or "Underfull" in l]
-        if r.returncode != 0:
-            print(r.stderr[-4000:])
-            sys.exit("FAILED: %s" % t)
-        print("  ok — %d over/underfull boxes" % len(warn))
-        if t == "lectures_full.tex":
-            # The book is the repository's deliverable, so it lives at the root
-            # under a name that means something to whoever downloads it, not
-            # buried next to its own sources as "lectures_full.pdf".
-            os.replace(os.path.join(LEC, "lectures_full.pdf"), BOOK_PDF)
-            print("  ->", os.path.basename(BOOK_PDF))
+    if not shutil.which("tectonic"):
+        sys.exit("tectonic not found — brew install tectonic")
+
+    if compile_tex("book.tex"):
+        shutil.move(os.path.join(TOPICS, "book.pdf"), BOOK_PDF)
+        print("built %s" % os.path.relpath(BOOK_PDF, ROOT))
+    if args.all:
+        for n in sorted(int(x) for x in man):
+            if compile_tex("topic_%02d.tex" % n):
+                print("  built topic_%02d.pdf" % n)
 
 
 if __name__ == "__main__":

@@ -9,9 +9,31 @@
 % ---------------------------------------------------------------------------
 
 \usepackage{fontspec}
-\IfFontExistsTF{Times New Roman}
-  {\setmainfont{Times New Roman}}
-  {\setmainfont{Liberation Serif}}
+% The whole book is Bulgarian, so the main face has to carry Cyrillic properly
+% rather than merely contain the glyphs. PT Serif was designed at ParaType for
+% Cyrillic and is the right first choice; the fallbacks are ordered by how well
+% they set Bulgarian, not by how common they are.
+\IfFontExistsTF{PT Serif}
+  {\setmainfont{PT Serif}}
+  {\IfFontExistsTF{Times New Roman}
+    {\setmainfont{Times New Roman}}
+    {\setmainfont{Liberation Serif}}}
+
+% polyglossia will not typeset a single Cyrillic word until it is told which
+% font to use for the script — it does not infer it from \setmainfont, and the
+% error it raises ("does not contain the Cyrillic script") is about the
+% declaration being absent, not about the font lacking the glyphs.
+% All three families need declaring, not just the roman one: \texttt on a
+% Cyrillic word fails exactly as \textrm does, and folder names and identifiers
+% in this book are Bulgarian. PT Serif/Sans/Mono are one designed family.
+\IfFontExistsTF{PT Serif}
+  {\newfontfamily\cyrillicfont{PT Serif}
+   \newfontfamily\cyrillicfontsf{PT Sans}
+   \newfontfamily\cyrillicfonttt{PT Mono}[Scale=MatchLowercase]
+   \setmonofont{PT Mono}[Scale=MatchLowercase]}
+  {\newfontfamily\cyrillicfont{Times New Roman}
+   \newfontfamily\cyrillicfonttt{Menlo}[Scale=MatchLowercase]
+   \setmonofont{Menlo}[Scale=MatchLowercase]}
 
 % Bulgarian: loads hyphenation patterns (without these TeX cannot break a single
 % Cyrillic word, which is what produced the loose lines and overfull boxes) and
