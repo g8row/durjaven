@@ -80,7 +80,10 @@ def load_variant_table():
     p = os.path.join(ROOT, "data", "glyph_map.json")
     if not os.path.exists(p):
         return {}
-    return {int(k): v for k, v in json.load(open(p)).items()}
+    # Keys beginning with "_" are notes to whoever reads the table next; the
+    # file is meant to be reviewed by hand, so it carries its own explanation.
+    return {int(k): v for k, v in json.load(open(p)).items()
+            if not k.startswith("_")}
 
 
 def load_math_map():
