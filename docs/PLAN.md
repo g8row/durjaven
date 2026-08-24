@@ -239,6 +239,37 @@ glyph multiset; disagreements are queued, not silently accepted.
 
 Both are embarrassingly parallel and neither belongs in an agent — see §4.
 
+### Phase 2b — Cross-check the photographs against the glyph stream
+
+**ox-alpha's mathematics is good but not exact, and the errors are the quiet
+kind.** Scored over 28 reference pages it runs 85–93% on prose and 61–83% on
+mathematics. Most of the gap is notation — `\varnothing` for `\emptyset`,
+`\lVert p\rVert` for `|p|`, whitespace — but not all of it. On the graph
+theory page it returned
+
+    E ⊆ { X ∈ V : |X| = 2 }        where the source has X ⊆ V
+
+which is not a formatting difference: an edge is a two-element *subset* of the
+vertex set, and `X ∈ V` says something false. Index variables drift too —
+`e_k = (u_k, u_{k+1})` for `e_k = (u_i, u_{i+1})`, `u_k` for `u_l`, and a path
+written with `e_{k_n}` where the source has `e_{k_{l-1}}`.
+
+None of that is visible in the prose, and none of it produces an error. It is
+precisely the failure mode this pipeline exists to defend against, and it means
+**photograph OCR cannot be the sole authority for any mathematical statement.**
+
+The defence is already in the corpus. For the 24 questions that have both a PDF
+and photographs, `scripts/extract_math.py` yields the *exact* character
+sequence of every formula in the PDF — no model, no guessing. So the check is
+mechanical: for each equation in the photograph OCR, look for a glyph-stream
+run with the same character multiset. Agreement is strong evidence; a mismatch
+is queued for a human or a stronger model. That turns "the model was probably
+right" into a decidable question over most of the book.
+
+The questions with no PDF — 6, 8, 17, 18, 21, 22 — have no such check, and
+their mathematics rests on a single OCR pass. They are the ones to re-read
+with the strongest available model rather than trusting the first result.
+
 ### Phase 3 — Drafting *(agents; §4 in detail)*
 
 One agent per topic writes `topics/bodies/topic_NN.tex` against the extracted
