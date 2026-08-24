@@ -234,6 +234,42 @@ def cap_size(img, max_px=1600):
 # Units
 # --------------------------------------------------------------------------- #
 
+def repair_json(raw):
+    """Parse model JSON that is merely truncated rather than malformed.
+
+    A long page can end a brace short of complete — one observed result carried
+    2,410 characters of correct transcription and failed to parse because the
+    final `}` was missing. Throwing that away and calling the page empty is the
+    worst outcome: the page still counts as read, and the loss is silent.
+
+    So: find the outermost object, trim any half-written trailing item, and
+    close whatever brackets are still open. Returns None if there is nothing
+    recoverable, which is the honest answer for an empty response.
+    """
+    if not raw or not raw.strip():
+        return None
+    t = raw.strip()
+    i = t.find("{")
+    if i < 0:
+        return None
+    t = t[i:]
+    try:
+        return json.loads(t)
+    except Exception:
+        pass
+    # Drop a trailing fragment, then close what is open.
+    for cut in (t.rfind("},"), t.rfind("}"), len(t)):
+        if cut <= 0:
+            continue
+        head = t[:cut + 1] if cut < len(t) else t
+        for closing in ("", "]}", "}", "]", '"}]}', '"}]'):
+            try:
+                return json.loads(head + closing)
+            except Exception:
+                continue
+    return None
+
+
 def slug(name):
     """A filesystem- and git-friendly id for a Cyrillic folder name."""
     n = unicodedata.normalize("NFC", name)
@@ -400,7 +436,12 @@ def main():
                 try:
                     data = _extract_json(raw)
                 except Exception:
-                    data = {"items": [], "raw": raw}
+                    data = repair_json(raw)
+                if not data or not data.get("items"):
+                    # An empty result must NOT be written: the file would make
+                    # the page look done and a resume would skip it forever.
+                    raise RuntimeError(
+                        "no items recovered (%d chars raw)" % len(raw or ""))
                 data.update({"unit": u["id"], "label": u["label"],
                              "page": i + 1, "tier": tier})
                 json.dump(data, open(dest, "w"), ensure_ascii=False, indent=1)
