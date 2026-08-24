@@ -162,16 +162,24 @@ because the failure that matters is a model that transcribes prose plausibly
 and invents the formulas. Scored on the topic 1 axioms and on a harder
 photo-desk page:
 
-| backend | text | math | note |
-|---|---|---|---|
-| codex / gpt-5.6-sol | 100% | 100% | the reference; quota-limited |
-| **ox-alpha, free** | **95%** | **75%** | holds up on the hard tier too |
-| mimo-v2.5-free | 80% | 14% → 0% | collapses on the hard tier |
-| nemotron-nano-12b-vl | 85% | 43% | reads ∀ as ×, z as 2 |
-| qwen2.5vl:7b | 79% | 29% | will not segment |
-| qwen3-vl:8b (Ollama) | 0% | 0% | thinking loop, empty output |
-| **Qwen3-VL-8B-Instruct-3bit (MLX)** | 77% | 37% | the same family, working — ~30 s/page, fully offline |
-| Qwen3.5-9B-8bit (MLX) | — | — | correct but 552 s/page: 55 h for the corpus |
+| backend | easy text | easy math | **hard math** | note |
+|---|---|---|---|---|
+| codex / gpt-5.6-sol | 100% | 100% | 100% | the reference; quota-limited |
+| **ox-alpha, free** | **95%** | **75%** | **72–75%** | the only one that holds |
+| mimo-v2.5-free | 85% | 76–80% | **0%** | collapses |
+| Qwen3-VL-8B-Instruct (MLX) | 77% | 37% | **0%** | collapses; 4 items for a full page |
+| nemotron-nano-12b-vl | 85% | 43% | — | reads ∀ as ×, z as 2 |
+| qwen2.5vl:7b | 79% | 29% | — | will not segment |
+| qwen3-vl:8b (Ollama) | 0% | 0% | — | thinking loop, empty output |
+| Qwen3.5-9B-8bit (MLX) | — | — | — | correct but 552 s/page: 55 h for the corpus |
+
+**The hard-tier column is the one that decides it.** Every candidate looks
+plausible on a clean sheet of white paper. Put the same model on a page shot
+against a dark desk with the reverse side showing through and all of them
+except ox-alpha drop to zero on the mathematics while still returning
+respectable-looking prose — mimo at 79% text, Qwen3-VL at 59% text and four
+items for a whole page. Ranking on the easy tier alone would have picked a
+model that silently deletes the mathematics from a third of the corpus.
 
 Two things that reading a single page would not have shown. mimo looks fine on
 prose at 80% while its mathematics goes to zero on the harder tier — the exact
