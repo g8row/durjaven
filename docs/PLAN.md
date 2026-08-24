@@ -167,7 +167,7 @@ photo-desk page:
 | codex / gpt-5.6-sol | 100% | 100% | 100% | the reference; quota-limited |
 | **ox-alpha, free** | **95%** | **75%** | **72–75%** | the only one that holds |
 | mimo-v2.5-free | 85% | 76–80% | **0%** | collapses |
-| Qwen3-VL-8B-Instruct (MLX) | 77% | 37% | **0%** | collapses; 4 items for a full page |
+| Qwen3-VL-8B-Instruct-3bit (MLX) | 77% | 37% | **0%** | finds no equations at all on the hard page |
 | nemotron-nano-12b-vl | 85% | 43% | — | reads ∀ as ×, z as 2 |
 | qwen2.5vl:7b | 79% | 29% | — | will not segment |
 | qwen3-vl:8b (Ollama) | 0% | 0% | — | thinking loop, empty output |
@@ -199,6 +199,23 @@ same family under MLX, in its Instruct build, transcribes the page correctly at
 runtime or a chat template as a model, and is worth one retry on another
 runtime before being believed. MLX is also simply the right runtime on Apple
 silicon.
+
+**Why Qwen3-VL collapses, since it is not what it looks like.** Its hard-tier
+output is not gibberish: the first three items transcribe the binary-heap
+definition correctly, and then the model emits one Bulgarian adverb several
+hundred times until it hits the token cap. That is degenerate generation from
+an aggressive quantisation, not an inability to read the page, and
+`repetition_penalty=1.05` removes it — the same page goes from 4 items to 22.
+It is wired into the MLX path by default.
+
+What the penalty does not fix is classification: the page carries 34–50
+equations and Qwen returns zero, filing all of the mathematics as prose. Two
+separate failures, and only one of them was a bug worth fixing. Higher-precision
+builds exist (`lmstudio-community/Qwen3-VL-8B-Instruct-MLX-8bit`) and are the
+obvious next thing to try if a local backend is ever needed on the hard tier.
+
+Preprocessing was ruled out as the cause: the same page prepped at 1600 px, at
+2400 px, and passed in raw all produce zero equations.
 
 **Local fallback.** `Qwen3-VL-8B-Instruct-3bit` under MLX is the only fully
 offline option that is both correct and fast enough to matter. 37% on

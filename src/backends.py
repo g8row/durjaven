@@ -345,9 +345,10 @@ class VLMClient:
 
     def __init__(self, mode="local", model=None, base_url=None, api_key=None,
                  provider="agy", device="auto", backend=None, timeout=600,
-                 output_schema=None):
+                 output_schema=None, repetition_penalty=1.05):
         self.mode = mode
         self.timeout = timeout
+        self.repetition_penalty = repetition_penalty
         self.output_schema = output_schema
         self.device = resolve_device(device)
         self.model = model
@@ -375,9 +376,18 @@ class VLMClient:
         from mlx_vlm.prompt_utils import apply_chat_template
         model, processor, config = self._load_mlx()
         formatted = apply_chat_template(processor, config, prompt, num_images=1)
+        # A small repetition penalty is not optional on aggressively quantised
+        # builds. Qwen3-VL-8B-Instruct-3bit transcribes three items correctly
+        # and then emits one Bulgarian adverb several hundred times until it
+        # hits the token cap; at 1.05 the loop disappears and the same page
+        # yields 22 items. Above ~1.1 it starts suppressing legitimately
+        # repeated notation instead, so keep it gentle.
+        kw = {}
+        if self.repetition_penalty:
+            kw["repetition_penalty"] = self.repetition_penalty
         out = generate(
             model, processor, formatted, [image_path],
-            max_tokens=max_tokens, temperature=0.0, verbose=False,
+            max_tokens=max_tokens, temperature=0.0, verbose=False, **kw
         )
         # mlx_vlm.generate returns a str (older) or a GenerationResult (newer)
         return getattr(out, "text", out)
