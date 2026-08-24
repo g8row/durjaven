@@ -210,9 +210,12 @@ It is wired into the MLX path by default.
 
 What the penalty does not fix is classification: the page carries 34–50
 equations and Qwen returns zero, filing all of the mathematics as prose. Two
-separate failures, and only one of them was a bug worth fixing. Higher-precision
-builds exist (`lmstudio-community/Qwen3-VL-8B-Instruct-MLX-8bit`) and are the
-obvious next thing to try if a local backend is ever needed on the hard tier.
+separate failures, and only one of them was a bug worth fixing. The 8-bit build was tried and settles it: at
+`lmstudio-community/Qwen3-VL-8B-Instruct-MLX-8bit` the hard page still returns
+**zero** equations out of 25 items, while the easy page manages 7. So the two
+faults have two different causes — the repetition loop was the quantisation and
+is fixed, the equation-blindness is the model at any precision. There is no
+local configuration of this family that can be trusted with the hard tier.
 
 Preprocessing was ruled out as the cause: the same page prepped at 1600 px, at
 2400 px, and passed in raw all produce zero equations.
