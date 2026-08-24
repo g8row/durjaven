@@ -155,6 +155,34 @@ everything later is checked against. It runs in minutes.
 
 ### Phase 2 — OCR *(bulk model calls, still no agents)*
 
+**Backend: ox-alpha (`x-preview-f-free`) through the opencode CLI, free.**
+Chosen on measurement, not reputation — `scripts/ocr_bench.py` scores each
+candidate against a reference and reports prose and mathematics separately,
+because the failure that matters is a model that transcribes prose plausibly
+and invents the formulas. Scored on the topic 1 axioms and on a harder
+photo-desk page:
+
+| backend | text | math | note |
+|---|---|---|---|
+| codex / gpt-5.6-sol | 100% | 100% | the reference; quota-limited |
+| **ox-alpha, free** | **95%** | **75%** | holds up on the hard tier too |
+| mimo-v2.5-free | 80% | 14% → 0% | collapses on the hard tier |
+| nemotron-nano-12b-vl | 85% | 43% | reads ∀ as ×, z as 2 |
+| qwen2.5vl:7b | 79% | 29% | will not segment |
+| qwen3-vl:8b | 0% | 0% | thinking loop, empty output |
+| Qwen3.5-9B-8bit (MLX) | — | — | correct but 552 s/page: 55 h for the corpus |
+
+Two things that reading a single page would not have shown. mimo looks fine on
+prose at 80% while its mathematics goes to zero on the harder tier — the exact
+shape of the dangerous failure. And ox-alpha gets the power-set axiom right
+(`z ⊆ X`) where the paid reference wrote `z ∈ X`, so "the expensive model is
+the reference" is a convenience, not a guarantee.
+
+ox-alpha is slow — it answers through an agent loop, so budget ~300–420 s per
+page — but it is free until 27 August 2026, which is the window this run has to
+fit inside. Six workers, resumable.
+
+
 Two independent jobs, both through `backends.py` so either can run local or
 cloud:
 
