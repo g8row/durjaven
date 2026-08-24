@@ -25,6 +25,7 @@ identical regardless of which backend produced them.
 """
 
 import os
+import re
 import sys
 import json
 import base64
@@ -106,6 +107,71 @@ def _call_agy(prompt, timeout=600):
     return res.stdout
 
 
+OPENCODE_BIN = os.environ.get(
+    "OPENCODE_BIN", os.path.expanduser("~/.opencode/bin/opencode"))
+
+
+def _call_opencode(prompt, image_path=None, model=None, timeout=600):
+    """Call the opencode CLI non-interactively.
+
+    Worth having as its own path rather than going at Zen's HTTP API directly:
+    several Zen models — the stealth ones especially — answer through the CLI
+    while `/chat/completions` returns 503, and the CLI is what holds the
+    account's auth. Free models cost nothing, which is the point.
+
+    Two traps. `-f` takes an array, so a prompt written after it is swallowed as
+    another filename ("File not found: What language is..."); the `--` separator
+    is required. And opencode is an *agent* with file tools, so it is run in a
+    scratch directory — otherwise it goes exploring the working tree instead of
+    reading the image it was handed.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        cmd = [OPENCODE_BIN, "run"]
+        if model:
+            cmd += ["-m", model if "/" in model else "opencode/" + model]
+        if image_path:
+            cmd += ["-f", os.path.abspath(image_path)]
+        cmd += ["--", prompt]
+        res = subprocess.run(cmd, stdin=subprocess.DEVNULL,
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             text=True, encoding="utf-8", timeout=timeout,
+                             cwd=td)
+        out = _strip_ansi(res.stdout or "").strip()
+        if res.returncode != 0 and not out:
+            raise RuntimeError("opencode run failed (exit %d): %s"
+                               % (res.returncode,
+                                  _strip_ansi(res.stderr or "")[-400:]))
+        return out
+
+
+def _strip_ansi(text):
+    return re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", text)
+
+
+ZEN_BASE_URL = "https://opencode.ai/zen/v1"
+
+
+def zen_key():
+    """OpenCode Zen's key, from the env or from opencode's own credential store."""
+    k = os.environ.get("OPENCODE_API_KEY")
+    if k:
+        return k
+    p = os.path.expanduser("~/.local/share/opencode/auth.json")
+    if os.path.exists(p):
+        try:
+            return json.load(open(p)).get("opencode", {}).get("key")
+        except Exception:
+            pass
+    return None
+
+
+def zen_headers(key):
+    """Zen rejects a lone Authorization header — it wants both forms and a
+    User-Agent. Sending only the bearer token gets a bare 403."""
+    return {"Authorization": f"Bearer {key}", "x-api-key": key,
+            "User-Agent": "opencode/1.0", "Accept": "application/json"}
+
+
 def _call_codex(prompt, image_path=None, model=None, timeout=600,
                 output_schema=None, reasoning="low"):
     """Call the Codex CLI in non-interactive mode.
@@ -169,7 +235,7 @@ def _call_gemini(prompt, api_key, model, image_path=None, timeout=300):
 
 
 def _call_openai_chat(base_url, api_key, model, messages, timeout=600,
-                      temperature=0.1, max_tokens=8192):
+                      temperature=0.1, max_tokens=8192, extra_headers=None):
     """One code path for every OpenAI-compatible chat endpoint (local or cloud).
 
     Note: some local servers (e.g. mlx_lm.server) expose chat at /chat/completions
@@ -180,6 +246,8 @@ def _call_openai_chat(base_url, api_key, model, messages, timeout=600,
     headers = {"Content-Type": "application/json"}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
+    if extra_headers:
+        headers.update(extra_headers)
     payload = {"model": model, "messages": messages, "temperature": temperature,
                "max_tokens": max_tokens}
     r = requests.post(url, headers=headers, json=payload, timeout=timeout)
@@ -317,6 +385,18 @@ class VLMClient:
     # --- public ------------------------------------------------------------ #
     def read_image(self, image_path, prompt):
         if self.mode == "cloud":
+            if self.provider == "opencode":
+                return _call_opencode(prompt, image_path=image_path,
+                                      model=self.model, timeout=self.timeout)
+            if self.provider == "zen":
+                key = self.api_key or zen_key()
+                messages = [{"role": "user", "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url",
+                     "image_url": {"url": _data_url(image_path)}}]}]
+                return _call_openai_chat(ZEN_BASE_URL, key, self.model, messages,
+                                         timeout=self.timeout,
+                                         extra_headers=zen_headers(key))
             if self.provider == "codex":
                 return _call_codex(prompt, image_path=image_path,
                                    model=self.model, timeout=self.timeout,
