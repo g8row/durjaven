@@ -32,11 +32,11 @@ Copied and used as-is:
 
 Copied and adapted:
 
-| File | From | Change needed |
+| File | From | Adaptation |
 |---|---|---|
 | `scripts/ocr_pages.py` | `ocr_pesho.py` | source is folders of JPEGs and scanned PDFs, not one PDF; per-tier preprocessing and prompts |
-| `scripts/build_topics.py` | `build_lectures.py` | 35 chapters in 11 parts instead of 15 lectures; `listings` for the code chapters |
-| `scripts/check_refs.py` | same | a rename — it imports `build_lectures` and expects `lectures/`; the two silent failures it catches are unchanged |
+| `scripts/build_topics.py` | `build_lectures.py` | 35 chapters in the конспект's three parts instead of 15 lectures; `listings` for the code chapters |
+| `scripts/check_refs.py` | same | now compiles `topics/book.tex` and checks `book.aux`; the two silent failures it catches are unchanged |
 
 Deliberately not copied: `main.py`, `transcribe.py`, `board_detection.py`,
 `board_tracking.py`, `temporal_alignment.py`, `ocr_pipeline.py`. All of them are
@@ -155,17 +155,24 @@ everything later is checked against. It runs in minutes.
 
 ### Phase 2 — OCR *(bulk model calls, still no agents)*
 
-**Backend: ox-alpha (`x-preview-f-free`) through the opencode CLI, free.**
-Chosen on measurement, not reputation — `scripts/ocr_bench.py` scores each
-candidate against a reference and reports prose and mathematics separately,
-because the failure that matters is a model that transcribes prose plausibly
-and invents the formulas. Scored on the topic 1 axioms and on a harder
-photo-desk page:
+**Backends: GPT-5.6 Luna for the easy tier, GPT-5.6 Terra for the hard tier.**
+The original bulk run used ox-alpha, but that model disappeared on 27 August
+2026 with 111 of 371 pages still unread. Completed outputs are evidence and are
+kept. `ocr_pages.py --reuse-tag` assembles them, in provenance order, into a
+canonical `__production` tree; only missing pages incur a new model call.
+
+The replacement is chosen on measurement, not reputation. `scripts/ocr_bench.py`
+scores each candidate against the same GPT-5.6 Sol reference and reports prose
+and mathematics separately, because the failure that matters is a model that
+transcribes prose plausibly and invents or drops the formulas. Fresh results on
+the topic 1 axioms and on the harder photo-desk page are:
 
 | backend | easy text | easy math | **hard math** | note |
 |---|---|---|---|---|
 | codex / gpt-5.6-sol | 100% | 100% | 100% | the reference; quota-limited |
-| **ox-alpha, free** | **95%** | **75%** | **72–75%** | the only one that holds |
+| **GPT-5.6 Terra** | **95.6%** | **90.4%** | **53.5%** | replacement for hard scans and photographs |
+| **GPT-5.6 Luna** | **93.4%** | **81.4%** | **25.8%** | cheap route for clean, typeset, and code pages |
+| ox-alpha, legacy | 95% | 75% | 72–75% | preserve completed pages; model unavailable |
 | mimo-v2.5-free | 85% | 76–80% | **0%** | collapses |
 | Qwen3-VL-8B-Instruct-3bit (MLX) | 77% | 37% | **0%** | finds no equations at all on the hard page |
 | nemotron-nano-12b-vl | 85% | 43% | — | reads ∀ as ×, z as 2 |
@@ -173,13 +180,12 @@ photo-desk page:
 | qwen3-vl:8b (Ollama) | 0% | 0% | — | thinking loop, empty output |
 | Qwen3.5-9B-8bit (MLX) | — | — | — | correct but 552 s/page: 55 h for the corpus |
 
-**The hard-tier column is the one that decides it.** Every candidate looks
-plausible on a clean sheet of white paper. Put the same model on a page shot
-against a dark desk with the reverse side showing through and all of them
-except ox-alpha drop to zero on the mathematics while still returning
-respectable-looking prose — mimo at 79% text, Qwen3-VL at 59% text and four
-items for a whole page. Ranking on the easy tier alone would have picked a
-model that silently deletes the mathematics from a third of the corpus.
+**The hard-tier column decides the routing.** Luna is competitive on a clean
+sheet but loses half of the hard page's mathematics; Terra preserves the prose
+and twice as much of the mathematics, so every remaining `photo-desk`,
+`scan-ruled`, and `notebook-hostile` page goes to Terra. Luna handles only
+`photo-clean`, `typeset`, and `code`. Terra still trails the legacy ox-alpha
+hard-page result, so the glyph-stream cross-check remains mandatory.
 
 Two things that reading a single page would not have shown. mimo looks fine on
 prose at 80% while its mathematics goes to zero on the harder tier — the exact
@@ -187,9 +193,30 @@ shape of the dangerous failure. And ox-alpha gets the power-set axiom right
 (`z ⊆ X`) where the paid reference wrote `z ∈ X`, so "the expensive model is
 the reference" is a convenience, not a guarantee.
 
-ox-alpha is slow — it answers through an agent loop, so budget ~300–420 s per
-page — but it is free until 27 August 2026, which is the window this run has to
-fit inside. Six workers, resumable.
+The production resume is explicit and repeatable:
+
+```bash
+# Assemble existing Sol/ox-alpha evidence and fill missing easy pages.
+python3 scripts/ocr_pages.py --out-tag production \
+  --reuse-tag codex --reuse-tag oxalpha --tier photo-clean \
+  --mode cloud --provider codex --model gpt-5.6-luna --workers 6
+python3 scripts/ocr_pages.py --out-tag production --tier typeset \
+  --mode cloud --provider codex --model gpt-5.6-luna --workers 6
+python3 scripts/ocr_pages.py --out-tag production --tier code \
+  --mode cloud --provider codex --model gpt-5.6-luna --workers 6
+
+# Everything still absent is hard-tier work.
+python3 scripts/ocr_pages.py --out-tag production \
+  --mode cloud --provider codex --model gpt-5.6-terra --workers 6
+```
+
+New JSON carries its backend description; reused pages are relative symlinks,
+so their target records provenance without copying or relabelling the result.
+The resumed production run is complete: **371/371 pages** — 32 reused Sol
+references, 227 preserved ox-alpha pages, 20 Luna pages, 91 Terra pages, and one
+deterministically identified blank separator page. Exact-page retries also
+caught and repaired a percentile edge case that had rendered seven sparse
+ruled pages as solid black.
 
 The Ollama/MLX split is worth keeping in mind when reading that table. Under
 Ollama, `qwen3-vl:8b` scored zero: it burned its whole budget thinking and
@@ -275,8 +302,12 @@ with the strongest available model rather than trusting the first result.
 
 ### Phase 3 — Drafting *(agents; §4 in detail)*
 
-One agent per topic writes `topics/bodies/topic_NN.tex` against the extracted
-prose, the validated LaTeX, the photograph OCR and the style rules.
+Completed 27 August 2026. `scripts/draft_topics.py` produced all 33
+source-backed chapter bodies against the extracted prose, validated LaTeX,
+photograph OCR and style rules. GPT-5.6 Terra handled the formal and
+mathematics-heavy questions; GPT-5.6 Luna handled the prose and programming
+questions. Questions 11 and 12 remain explicit placeholders because no source
+exists for them in the corpus. The compiled book is 401 pages.
 
 ### Phase 4 — Build *(scripts)*
 

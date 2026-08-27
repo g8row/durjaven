@@ -46,6 +46,10 @@
 \usepackage{amssymb}
 \usepackage{amsfonts}
 \usepackage{amsthm}
+% Semantic interpretation brackets used in the predicate-logic chapters.
+% Keep these local instead of pulling a second symbol font into the PDF.
+\newcommand{\llbracket}{[\![}
+\newcommand{\rrbracket}{]\!]}
 % Shared probability notation. Bodies use these semantic commands exclusively.
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\Var}{\mathbb{D}}
@@ -66,6 +70,9 @@
 \usepackage[most]{tcolorbox}
 \usepackage{microtype}
 \usepackage{fancyhdr}
+% Long Bulgarian chapter titles wrap in the running head. Reserve enough room
+% so fancyhdr does not silently change \topmargin from page to page.
+\setlength{\headheight}{24pt}
 
 % "г.", "т.е.", "п.с." are abbreviations, not sentence ends — suppress the
 % extra inter-sentence space LaTeX would otherwise insert after them.

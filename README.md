@@ -87,6 +87,16 @@ Phase 1 extraction is done and has been run over the whole corpus. The topic
 map is built: `topics/manifest.json` maps all 35 questions of the official
 конспект to their sources.
 
+Phase 2 page OCR is also complete: `run/ocr/*__production/` contains all 371
+pages, preserving the completed Sol/ox-alpha evidence and filling the interrupted
+run with GPT-5.6 Luna on easy pages and GPT-5.6 Terra on hard pages. The model
+choice and benchmark results are recorded in `docs/PLAN.md`.
+
+Phase 3 drafting is complete for every source-backed question: 33 chapter bodies
+were produced with GPT-5.6 Luna and Terra and compiled into a 401-page book.
+Questions 11 and 12 remain explicit source-gap chapters because the corpus contains
+no supporting material for them; their content has deliberately not been invented.
+
 The thing to know before drafting anything: **neither source set follows the
 current syllabus numbering.** Both predate the June 2025 revision, which rotated
 the mathematics block, so questions 28–35 are systematically offset in the

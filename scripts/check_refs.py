@@ -1,12 +1,4 @@
 #!/usr/bin/env python3
-"""NOT YET ADAPTED — copied verbatim from lec2tex, see docs/PLAN.md §1.
-
-Imports `build_lectures` and looks for lectures/lectures_full.tex; here the
-driver is scripts/build_topics.py and the book lives in topics/. The two silent
-failure modes it detects are unchanged and still worth having, so this is a
-rename job, not a rewrite.
-"""
-
 """Cross-reference integrity check for the collected book.
 
 Two failure modes here are SILENT — neither produces a "??" in the PDF, so
@@ -29,7 +21,7 @@ neither shows up in a normal build:
 
 Run after building. Exits non-zero if either is found.
 
-    python3 scripts/build_lectures.py
+    python3 scripts/build_topics.py
     python3 scripts/check_refs.py
 """
 import glob
@@ -39,11 +31,11 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build_lectures import BOOK_PDF  # noqa: E402  (one definition of the name)
+from build_topics import BOOK_PDF  # noqa: E402  (one definition of the name)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LEC = os.path.join(ROOT, "lectures")
-AUX = os.path.join(LEC, "lectures_full.aux")
+TOPICS = os.path.join(ROOT, "topics")
+AUX = os.path.join(TOPICS, "book.aux")
 
 
 def main():
@@ -54,7 +46,7 @@ def main():
     # then lies in the most confusing possible direction.
     def compile_once():
         r = subprocess.run(["tectonic", "-X", "compile", "--keep-intermediates",
-                            "lectures_full.tex"], cwd=LEC,
+                            "book.tex"], cwd=TOPICS,
                            capture_output=True, text=True)
         if r.returncode != 0:
             sys.exit("build failed:\n" + r.stderr[-2000:])
@@ -69,19 +61,19 @@ def main():
     # can still trail the settled state by a single pass.
     compile_once()
     if not os.path.exists(AUX):
-        sys.exit("could not produce lectures_full.aux")
+        sys.exit("could not produce book.aux")
 
     # This script compiles as well, so it owns the freshest PDF by the time it
-    # gets here. Leaving it in lectures/ would strand the root deliverable one
-    # edit behind, so move it the same way build_lectures.py does.
-    built = os.path.join(LEC, "lectures_full.pdf")
+    # gets here. Leaving it in topics/ would strand the root deliverable one
+    # edit behind, so move it the same way build_topics.py does.
+    built = os.path.join(TOPICS, "book.pdf")
     if os.path.exists(built):
         os.replace(built, BOOK_PDF)
 
     aux = open(AUX, encoding="utf-8").read()
 
     labels, refs = {}, {}
-    for path in sorted(glob.glob(os.path.join(LEC, "bodies", "*.tex"))):
+    for path in sorted(glob.glob(os.path.join(TOPICS, "bodies", "*.tex"))):
         name = os.path.basename(path)
         text = open(path, encoding="utf-8").read()
         for lbl in re.findall(r"\\label\{([^}]*)\}", text):

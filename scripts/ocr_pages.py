@@ -216,8 +216,25 @@ def prep(img, tier):
     # --- stretch what is left ------------------------------------------------
     flat = cv2.createCLAHE(clipLimit=cfg["clahe"], tileGridSize=(8, 8)).apply(flat)
     lo, hi = np.percentile(flat, [2, 98])
+    if hi - lo < 1:
+        # Sparse ruled pages can contain ink in less than 2% of their pixels,
+        # making both percentiles 255. Applying the stretch in that case turns
+        # the whole page black and makes good handwriting literally invisible.
+        return flat
     flat = np.clip((flat.astype(np.float32) - lo) * 255.0 / max(hi - lo, 1), 0, 255)
     return flat.astype(np.uint8)
+
+
+def is_blank_scan(img, tier):
+    """Detect the genuinely empty separator page in the ruled-note corpus.
+
+    This intentionally applies only to scan-ruled pages. Photographs have dark
+    borders and shadows, while a blank ruled scan is almost entirely pure white.
+    """
+    if tier != "scan-ruled":
+        return False
+    g = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    return float(np.mean(g < 250)) < 0.005
 
 
 def cap_size(img, max_px=1600):
@@ -332,6 +349,8 @@ def main():
     ap.add_argument("--unit", help="one unit id or folder name, e.g. temi_01")
     ap.add_argument("--tier", help="only units/pages of this tier")
     ap.add_argument("--limit", type=int, help="at most N pages per unit (sampling)")
+    ap.add_argument("--page", action="append", type=int, default=[],
+                    help="read this 1-based page only (repeat for exact retries)")
     ap.add_argument("--list", action="store_true", help="show the plan, do nothing")
     ap.add_argument("--prep-only", action="store_true", help="write prepped PNGs only")
     ap.add_argument("--max-px", type=int, default=1600)
@@ -339,6 +358,10 @@ def main():
     ap.add_argument("--out-tag", default=None,
                     help="write under run/ocr/<unit>__<tag>/ so two models' runs "
                          "can sit side by side for comparison")
+    ap.add_argument("--reuse-tag", action="append", default=[],
+                    help="before calling the model, reuse an existing page from "
+                         "run/ocr/<unit>__<tag>/ (repeat in priority order); "
+                         "the canonical output records provenance as a symlink")
     ap.add_argument("--retries", type=int, default=4)
     ap.add_argument("--workers", type=int, default=1,
                     help="pages read concurrently; each call is an independent "
@@ -402,17 +425,44 @@ def main():
     jobs = []
     for u in us:
         n = page_count(u)
-        pages = range(min(n, args.limit) if args.limit else n)
+        pages = ([p - 1 for p in args.page if 1 <= p <= n]
+                 if args.page else
+                 range(min(n, args.limit) if args.limit else n))
         outdir = os.path.join(OUT, u["id"] + ("__" + args.out_tag if args.out_tag else ""))
         os.makedirs(os.path.join(outdir, "prep"), exist_ok=True)
         for i in pages:
+            dest = os.path.join(outdir, "page_%03d.json" % (i + 1))
+            prep_path = os.path.join(outdir, "prep", "page_%03d.png" % (i + 1))
+            if os.path.islink(dest) and (args.force or not os.path.exists(dest)):
+                # Never let --force follow a canonical provenance link and
+                # overwrite the original model output. Broken links should be
+                # repaired by the normal reuse/model path below.
+                os.unlink(dest)
+            if os.path.exists(dest) and not args.force and not args.prep_only:
+                print("skip %s p%d (done)" % (u["id"], i + 1))
+                continue
+            if not args.force and not args.prep_only:
+                for tag in args.reuse_tag:
+                    source = os.path.join(
+                        OUT, u["id"] + "__" + tag,
+                        "page_%03d.json" % (i + 1))
+                    if os.path.exists(source):
+                        # A relative link keeps the canonical tree relocatable,
+                        # and the link target itself is the provenance record.
+                        os.symlink(os.path.relpath(source, outdir), dest)
+                        print("reuse %s p%d <- %s" % (u["id"], i + 1, tag))
+                        break
+                if os.path.exists(dest):
+                    continue
             img, tier = load_page(u, i)
             if args.tier and tier != args.tier:
                 continue
-            dest = os.path.join(outdir, "page_%03d.json" % (i + 1))
-            prep_path = os.path.join(outdir, "prep", "page_%03d.png" % (i + 1))
-            if os.path.exists(dest) and not args.force and not args.prep_only:
-                print("skip %s p%d (done)" % (u["id"], i + 1))
+            if not args.prep_only and is_blank_scan(img, tier):
+                data = {"items": [], "unit": u["id"], "label": u["label"],
+                        "page": i + 1, "tier": tier, "blank": True,
+                        "backend": "deterministic blank-page check"}
+                json.dump(data, open(dest, "w"), ensure_ascii=False, indent=1)
+                print("blank %s p%d (deterministic)" % (u["id"], i + 1))
                 continue
             # Preprocessing is cheap and CPU-bound; do it up front so the
             # workers only ever wait on the model.
@@ -442,8 +492,16 @@ def main():
                     # the page look done and a resume would skip it forever.
                     raise RuntimeError(
                         "no items recovered (%d chars raw)" % len(raw or ""))
+                # Structured-output models occasionally emit an empty item
+                # between two real ones. It carries no evidence and should not
+                # become a phantom paragraph downstream.
+                data["items"] = [it for it in data["items"]
+                                 if str(it.get("content", "")).strip()]
+                if not data["items"]:
+                    raise RuntimeError("all recovered items were empty")
                 data.update({"unit": u["id"], "label": u["label"],
-                             "page": i + 1, "tier": tier})
+                             "page": i + 1, "tier": tier,
+                             "backend": client.describe()})
                 json.dump(data, open(dest, "w"), ensure_ascii=False, indent=1)
                 done[0] += 1
                 print("[%d/%d] %s p%d [%s] -> %d items"
