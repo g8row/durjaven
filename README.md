@@ -93,13 +93,15 @@ run with GPT-5.6 Luna on easy pages and GPT-5.6 Terra on hard pages. The model
 choice and benchmark results are recorded in `docs/PLAN.md`.
 
 Phase 3 drafting is complete for every source-backed question: 33 chapter bodies
-were produced with GPT-5.6 Luna and Terra and compiled into a 401-page book.
-Questions 11 and 12 remain explicit source-gap chapters because the corpus contains
-no supporting material for them; their content has deliberately not been invented.
+were produced with GPT-5.6 Luna and Terra. Questions 11 and 12 now contain compact
+supplemental chapters based on the official detailed annotation and the comparison
+document supplied later. Their source notes remain explicit because the original
+listed literature is still absent from the corpus and requires future verification.
 
 The thing to know before drafting anything: **neither source set follows the
 current syllabus numbering.** Both predate the June 2025 revision, which rotated
 the mathematics block, so questions 28–35 are systematically offset in the
 filenames — and the PDFs are additionally stale on questions 6 and 8, where the
-photographs are the correct source. Questions 11 and 12 have no source at all.
+photographs are the correct source. Questions 11 and 12 still have no primary source
+in the corpus; their supplemental chapters are therefore marked separately.
 See [CORPUS.md](docs/CORPUS.md) §3–4.

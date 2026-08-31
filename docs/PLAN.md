@@ -120,8 +120,9 @@ What remains is verification, not discovery:
    (recurrence relations; alternating group / Cayley / homomorphism theorem;
    the three discrete distributions and generating functions). Confirm from the
    photographs, else declare the gap.
-3. **Topics 11 and 12** have no source at all. Decide: source separately, or
-   ship as declared gaps.
+3. **Topics 11 and 12** have no primary source in the corpus. They were later
+   drafted as explicitly labeled supplements from the official annotation and
+   a comparison document; verification against the listed literature remains.
 4. **Topics 15, 16** are marked `derived` — mapped by position rather than read.
    Spot-check.
 
@@ -306,8 +307,10 @@ Completed 27 August 2026. `scripts/draft_topics.py` produced all 33
 source-backed chapter bodies against the extracted prose, validated LaTeX,
 photograph OCR and style rules. GPT-5.6 Terra handled the formal and
 mathematics-heavy questions; GPT-5.6 Luna handled the prose and programming
-questions. Questions 11 and 12 remain explicit placeholders because no source
-exists for them in the corpus. The compiled book is 401 pages.
+questions. Questions 11 and 12 were later filled as concise supplemental drafts
+from the official detailed annotation and a supplied comparison document. They
+remain marked for verification because no primary source exists for them in the
+corpus.
 
 ### Phase 4 — Build *(scripts)*
 
@@ -409,7 +412,7 @@ Model assignment follows the mathematical load, not the page count:
 | Photograph-only | 6, 8, 17, 18 | 4 | **Opus 5** | one handwritten source, no PDF to cross-check — every claim rests on a single OCR pass |
 | Prose + code | 14–16, 19, 20, 23–27 | 10 | **Sonnet 5** | definitions and enumerated properties; code must survive verbatim |
 | Prose | 4, 9, 10, 13 | 4 | **Sonnet 5** | single source, no reconciliation |
-| Absent | 11, 12 | — | — | not drafted until material is found |
+| Supplemental | 11, 12 | — | — | drafted from the official annotation and comparison document; primary-source verification pending |
 
 Thirty-three chapters drafted, 19 on Opus and 14 on Sonnet.
 
@@ -460,8 +463,9 @@ trustworthy:
 - **Don't correct the source silently.** These are a student's exam notes. Where
   they are wrong or non-standard, footnote it — never rewrite the claim.
 - **Don't strengthen.** A hedge in the source stays a hedge in the book.
-- **Don't invent.** Expansion must recover what the source said. Topics 11 and
-  12 have no source; they ship as declared gaps unless material is found.
+- **Don't invent silently.** Expansion should recover what the source said. The
+  supplemental Topics 11 and 12 are explicitly labeled because they rely on the
+  official annotation and comparison document rather than the missing primary sources.
 - **Two sources agreeing is the evidence worth having.** Most topics have both a
   PDF and photographs. Where they agree, confidence is high; where they diverge,
   the divergence is recorded in the chapter's audit file, not smoothed over.
@@ -476,7 +480,7 @@ trustworthy:
 |---|---|
 | Sources predate the конспект | settled: `topics/manifest.json` maps by question, not filename; `6.pdf`/`8.pdf` retired to an appendix |
 | Topic 32 mapping unconfirmed | read `30.pdf` against annotation 32 before drafting — flagged `derived` in the manifest |
-| Topics 11, 12 have no source | ship as declared gaps, or source separately — check the faculty ДИ page first |
+| Topics 11, 12 have no primary source | supplemental drafts are labeled; verify them against the listed literature when available |
 | A chapter covers the topic but not the *question* | the annotation-coverage audit (Wave 0) is the check; findings go in `docs/COVERAGE.md` |
 | `SA`/`ST` may be too degraded to OCR | Wave 1 finds out early; fallback is `SA-SI.pdf` (12 clean pages) for topic 27 |
 | Photo↔PDF pairing by filename | forbidden; `topics/manifest.json` is the only authority |

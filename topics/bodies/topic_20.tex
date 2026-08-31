@@ -591,13 +591,9 @@ reverse l = foldl (flip (:)) [] l
 
 \subsection{Потоци в Scheme}
 
-За дефиниране на поток е необходима специална форма, която да отлага опашката. Една възможна схема е:
+За дефиниране на поток е необходима специална форма, която да отлага опашката. Следната схема използва съгласувано стандартните обещания \texttt{delay} и \texttt{force}:
 
 \begin{verbatim}
-(define-syntax delay
-  (syntax-rules ()
-    ((delay x) (lambda () x))))
-
 (define-syntax cons-stream
   (syntax-rules ()
     ((cons-stream h t)
@@ -614,7 +610,7 @@ reverse l = foldl (flip (:)) [] l
 (define empty-stream? null?)
 \end{verbatim}
 
-\texttt{head} извлича главата, а \texttt{tail} форсира обещанието в опашката и връща следващия поток.
+\texttt{head} извлича главата, а \texttt{tail} форсира обещанието в опашката и връща следващия поток. Стандартното обещание мемоизира резултата, така че повторно извикване на \texttt{tail} не пресмята същата опашка отново.
 
 За краен интервал може да се дефинира:
 

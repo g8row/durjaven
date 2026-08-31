@@ -393,6 +393,11 @@ struct DLListItem {
   DLListItem* next;
   DLListItem* prev;
 };
+
+struct DLList {
+  DLListItem* first;
+  DLListItem* last;
+};
 \end{verbatim}
 
 За списъка обикновено се пазят указатели към началото и края. Допълнително може да се пази указател към текущия елемент, което улеснява някои операции по вмъкване, изключване и търсене.
@@ -400,7 +405,9 @@ struct DLListItem {
 При едносвързан списък движението по връзките е само напред. При двусвързан списък може да се преминава и в двете посоки. Изключването на текущ елемент се извършва чрез свързване на неговия предходен и следващ елемент един с друг. При крайни елементи единият от съответните указатели е \verb|nullptr|.
 
 \begin{verbatim}
-void insertAfter(DLListItem* current, int value) {
+void insertAfter(DLList& list,
+                 DLListItem* current,
+                 int value) {
   if (current == nullptr) {
     return;
   }
@@ -412,6 +419,8 @@ void insertAfter(DLListItem* current, int value) {
 
   if (current->next != nullptr) {
     current->next->prev = item;
+  } else {
+    list.last = item;
   }
 
   current->next = item;

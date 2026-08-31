@@ -64,3 +64,11 @@ gaps and were not treated as completed chapters.
 3. Correct architectural/taxonomy claims in questions 10, 13 and 27.
 4. Apply the P2 proof, terminology and example-hygiene corrections.
 5. Rebuild, run reference checks, and visually inspect every affected chapter.
+
+## Post-review resolution — 31 August 2026
+
+All twelve corroborated P1 findings above were corrected in the initial book.
+The same revision also filled the two declared source gaps as explicitly labeled
+supplemental chapters, added the page-replacement strategies required by Topic
+10, and added simulated annealing required by Topic 25. The supplemental Topics
+11 and 12 still require verification against their missing primary literature.
