@@ -77,6 +77,10 @@ Office install; it looks there automatically, or drop `Cambria.ttc` in
 .venv/bin/python scripts/check_refs.py
 ```
 
+Both commands publish the current collected book to
+`darzhaven-izpit-kn.pdf` at the repository root. The root file is the single
+canonical PDF deliverable; `topics/book.pdf` is only a transient compiler output.
+
 Every model-using stage goes through `src/backends.py`, so each can run locally
 (MLX-VLM, Ollama, vLLM) or in the cloud (`agy`, Gemini) independently of the
 others — `--mode`, `--provider`, `--model`, `--base-url`.

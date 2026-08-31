@@ -39,6 +39,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOPICS = os.path.join(ROOT, "topics")
 BODIES = os.path.join(TOPICS, "bodies")
 BOOK_PDF = os.path.join(ROOT, "darzhaven-izpit-kn.pdf")
+BUILT_BOOK_PDF = os.path.join(TOPICS, "book.pdf")
 MANIFEST = os.path.join(TOPICS, "manifest.json")
 ANNOT = os.path.join(ROOT, "docs", "konspekt_annotations.json")
 
@@ -191,6 +192,14 @@ def compile_tex(name):
     return True
 
 
+def publish_book_pdf():
+    """Atomically publish Tectonic's book PDF at the repository root."""
+    if not os.path.isfile(BUILT_BOOK_PDF):
+        raise FileNotFoundError("Tectonic did not produce %s" % BUILT_BOOK_PDF)
+    os.replace(BUILT_BOOK_PDF, BOOK_PDF)
+    return BOOK_PDF
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--gen-only", action="store_true")
@@ -215,8 +224,8 @@ def main():
         sys.exit("tectonic not found — brew install tectonic")
 
     if compile_tex("book.tex"):
-        shutil.move(os.path.join(TOPICS, "book.pdf"), BOOK_PDF)
-        print("built %s" % os.path.relpath(BOOK_PDF, ROOT))
+        published = publish_book_pdf()
+        print("built %s" % os.path.relpath(published, ROOT))
     if args.all:
         for n in sorted(int(x) for x in man):
             if compile_tex("topic_%02d.tex" % n):

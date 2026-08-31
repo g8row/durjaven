@@ -31,7 +31,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build_topics import BOOK_PDF  # noqa: E402  (one definition of the name)
+from build_topics import publish_book_pdf  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOPICS = os.path.join(ROOT, "topics")
@@ -66,9 +66,7 @@ def main():
     # This script compiles as well, so it owns the freshest PDF by the time it
     # gets here. Leaving it in topics/ would strand the root deliverable one
     # edit behind, so move it the same way build_topics.py does.
-    built = os.path.join(TOPICS, "book.pdf")
-    if os.path.exists(built):
-        os.replace(built, BOOK_PDF)
+    publish_book_pdf()
 
     aux = open(AUX, encoding="utf-8").read()
 
