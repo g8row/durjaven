@@ -160,19 +160,27 @@ Az=\lambda z.
 =
 \lambda\sum_{i=1}^n |z_i|^2.
 \]
-Тъй като $A$ е реална симетрична матрица, имаме
+Нека
 \[
-\overline{z}^{\,t}Az
-=
-\overline{\overline{z}^{\,t}Az}.
+q=\overline{z}^{\,t}Az.
 \]
-Комплексното спрягане на равенството $Az=\lambda z$ дава
+Тъй като $A$ е реална симетрична матрица и $q$ е скалар,
+\[
+\overline q
+=z^tA\overline z
+=(z^tA\overline z)^t
+=\overline z^{\,t}A^tz
+=\overline z^{\,t}Az
+=q.
+\]
+Следователно $q$ е реално число. От друга страна, комплексното спрягане на равенството $Az=\lambda z$ дава
 \[
 A\overline{z}=\overline{\lambda}\,\overline{z}.
 \]
 Следователно
 \[
-\overline{z}^{\,t}Az
+q=\overline q
+=z^tA\overline z
 =
 \overline{\lambda}\sum_{i=1}^n |z_i|^2.
 \]

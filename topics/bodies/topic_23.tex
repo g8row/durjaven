@@ -143,7 +143,7 @@ ALTER TABLE movies DROP COLUMN length;
 DROP TABLE movies;
 \end{verbatim}
 
-При изпълнение на DDL операция промените върху схемата се прилагат незабавно.
+Моментът, в който DDL промяната става постоянна, зависи от конкретната СУБД и от транзакционния режим. Някои системи изпълняват автоматично потвърждение, а други позволяват DDL операцията да бъде част от явна транзакция.
 
 \subsection{DML операции}
 
@@ -162,8 +162,8 @@ ORDER BY release_date DESC
 Добавяне на кортеж се извършва с \texttt{INSERT}:
 
 \begin{verbatim}
-INSERT INTO movies (title, length, release_date)
-VALUES ('Star wars', 124, '09-04-1984')
+INSERT INTO movies (id, title, length, release_date)
+VALUES (1, 'Star Wars', 124, DATE '1984-04-09')
 \end{verbatim}
 
 Промяна на вече съществуващи данни се извършва с \texttt{UPDATE}:
@@ -181,7 +181,7 @@ DELETE FROM movies
 WHERE length < 120
 \end{verbatim}
 
-След изпълнение на DML операция промените трябва да бъдат потвърдени с \texttt{COMMIT}, за да станат постоянни.
+При изключен автоматичен режим за потвърждение DML промените трябва да бъдат потвърдени с \texttt{COMMIT}, за да станат постоянни. При включен autocommit всяка инструкция се потвърждава автоматично; конкретното поведение зависи от СУБД и настройките на сесията.
 
 \subsection{Заявки към релационната база от данни}
 
@@ -352,7 +352,7 @@ R\times S.
 
 Например могат да се използват \textit{Movie.Year} и \textit{StarsIn.MovieYear}.
 
-Декартовото произведение е бинарна операция, комутативна и асоциативна според разглеждането на съответните атрибути и подредбата на схемата.
+При различни имена на атрибутите декартовото произведение е комутативно и асоциативно до канонично преименуване и пренареждане на атрибутите. Ако схемите се разглеждат като наредени списъци, $R\times S$ и $S\times R$ не са буквално една и съща релация; те са изоморфни след размяна на съответните компоненти. При съвпадащи имена първо се използва квалифициране или явно преименуване.
 
 \subsection{Тета-съединение}
 
@@ -483,8 +483,8 @@ ORDER BY release_date DESC
 Задача: да се добави филм.
 
 \begin{verbatim}
-INSERT INTO movies (title, length, release_date)
-VALUES ('Star wars', 124, '09-04-1984')
+INSERT INTO movies (id, title, length, release_date)
+VALUES (1, 'Star Wars', 124, DATE '1984-04-09')
 \end{verbatim}
 
 Задача: да се промени заглавието на филма.
@@ -502,7 +502,7 @@ DELETE FROM movies
 WHERE length < 120
 \end{verbatim}
 
-След промени чрез \texttt{INSERT}, \texttt{UPDATE} или \texttt{DELETE} се изпълнява:
+При изключен autocommit след промени чрез \texttt{INSERT}, \texttt{UPDATE} или \texttt{DELETE} се изпълнява:
 
 \begin{verbatim}
 COMMIT
@@ -538,7 +538,42 @@ DROP TABLE movies;
 
 \subsection{Тригери}
 
-Тригерите са свързани с автоматично изпълнение на действие при настъпване на определено събитие върху данни. В предоставения материал не са зададени конкретен синтаксис, събития или примерна реализация на тригер. Поради това тук не се фиксира конкретен SQL вариант за тригер, тъй като синтаксисът зависи от използваната система за управление на бази от данни.
+Тригер е правило, което изпълнява автоматично действие при определено събитие върху таблица или изглед. При задаването му се посочват:
+
+\begin{itemize}
+    \item събитието --- например \texttt{INSERT}, \texttt{UPDATE} или \texttt{DELETE};
+    \item моментът --- \texttt{BEFORE}, \texttt{AFTER} или, когато СУБД го поддържа, \texttt{INSTEAD OF};
+    \item гранулярността --- веднъж за цялата инструкция или по веднъж за всеки засегнат ред;
+    \item условие и действие; при редов тригер старите и новите стойности обикновено се означават чрез \texttt{OLD} и \texttt{NEW}.
+\end{itemize}
+
+Синтаксисът е зависим от СУБД. Следва пример за PostgreSQL, който записва промяната на заглавие:
+
+\begin{verbatim}
+CREATE TABLE movie_title_log (
+  movie_id INTEGER,
+  old_title CHAR(50),
+  new_title CHAR(50),
+  changed_at TIMESTAMP
+);
+
+CREATE FUNCTION log_movie_title_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO movie_title_log
+    VALUES (OLD.id, OLD.title, NEW.title, CURRENT_TIMESTAMP);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER movie_title_changed
+AFTER UPDATE OF title ON movies
+FOR EACH ROW
+WHEN (OLD.title IS DISTINCT FROM NEW.title)
+EXECUTE FUNCTION log_movie_title_change();
+\end{verbatim}
+
+Тук събитието е промяна на \texttt{title}, моментът е след промяната, гранулярността е по ред, условието пропуска непроменени стойности, а действието добавя запис в журналната таблица. При друга СУБД същата логика може да има различен синтаксис.
 
 \section{Изпитен фокус}
 
