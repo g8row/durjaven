@@ -35,6 +35,8 @@ import unicodedata
 import subprocess
 import sys
 
+from check_structure import check as check_structure
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOPICS = os.path.join(ROOT, "topics")
 BODIES = os.path.join(TOPICS, "bodies")
@@ -177,6 +179,30 @@ def book(man):
 {\small ФМИ, Софийски университет „Св. Климент Охридски“\par}
 \vfill
 \end{titlepage}
+\chapter*{Как да използвате записките}
+Дефинициите въвеждат понятия и означения. Те не се доказват.
+Теоремите, лемите, твърденията и следствията формулират проверими
+резултати; след тях има отделен блок с доказателство.
+Аксиомите и схемите изрично посочват приетите изходни предпоставки.
+
+\begin{itemize}
+\item Синя рамка: дефиниция.
+\item Зелена рамка: теорема, лема, твърдение или следствие.
+\item Златна рамка със звезда: основна дефиниция, резултат или аксиома.
+\item Сива затворена рамка: доказателство, завършващо със символ $\square$.
+\end{itemize}
+
+Формулировките и номерацията следват конспекта от 30.06.2025.
+В тази редакция са отделени определенията от обяснителния текст и са
+допълнени доказателства към резултати, оставени без доказателство
+в предходната редакция. Допълнените аргументи са учебна разработка,
+а не дословен текст от конспекта. Използваните външни резултати са
+посочени в съответното доказателство.
+
+Бележките за липсващи първични източници по въпроси 11 и 12 остават
+в началото на тези глави. Проверката на рамките и наличието на
+доказателства не замества академичната проверка по литературата.
+\clearpage
 \tableofcontents
 \cleardoublepage
 """ + "\n\n".join(chapters) + "\n\\end{document}\n")
@@ -212,6 +238,10 @@ def main():
     if made:
         print("wrote %d placeholder bodies" % made)
 
+    _, structure_errors = check_structure()
+    if structure_errors:
+        sys.exit("statement/proof structure failed:\n" + "\n".join(structure_errors))
+
     for n, meta in man.items():
         open(os.path.join(TOPICS, "topic_%02d.tex" % int(n)), "w").write(
             standalone(int(n), meta["title"]))
@@ -226,6 +256,8 @@ def main():
     if compile_tex("book.tex"):
         published = publish_book_pdf()
         print("built %s" % os.path.relpath(published, ROOT))
+    else:
+        sys.exit(1)
     if args.all:
         for n in sorted(int(x) for x in man):
             if compile_tex("topic_%02d.tex" % n):

@@ -1,0 +1,221 @@
+{
+  "topics": [
+    {
+      "topic": 1,
+      "definitions": 25,
+      "results": 7,
+      "proofs": 7
+    },
+    {
+      "topic": 2,
+      "definitions": 6,
+      "results": 16,
+      "proofs": 16
+    },
+    {
+      "topic": 3,
+      "definitions": 23,
+      "results": 9,
+      "proofs": 9
+    },
+    {
+      "topic": 4,
+      "definitions": 8,
+      "results": 12,
+      "proofs": 12
+    },
+    {
+      "topic": 5,
+      "definitions": 5,
+      "results": 4,
+      "proofs": 5
+    },
+    {
+      "topic": 6,
+      "definitions": 5,
+      "results": 17,
+      "proofs": 17
+    },
+    {
+      "topic": 7,
+      "definitions": 11,
+      "results": 6,
+      "proofs": 6
+    },
+    {
+      "topic": 8,
+      "definitions": 3,
+      "results": 12,
+      "proofs": 12
+    },
+    {
+      "topic": 9,
+      "definitions": 11,
+      "results": 0,
+      "proofs": 0
+    },
+    {
+      "topic": 10,
+      "definitions": 17,
+      "results": 0,
+      "proofs": 0
+    },
+    {
+      "topic": 11,
+      "definitions": 8,
+      "results": 0,
+      "proofs": 0
+    },
+    {
+      "topic": 12,
+      "definitions": 10,
+      "results": 0,
+      "proofs": 0
+    },
+    {
+      "topic": 13,
+      "definitions": 17,
+      "results": 0,
+      "proofs": 0
+    },
+    {
+      "topic": 14,
+      "definitions": 13,
+      "results": 0,
+      "proofs": 0
+    },
+    {
+      "topic": 15,
+      "definitions": 6,
+      "results": 0,
+      "proofs": 0
+    },
+    {
+      "topic": 16,
+      "definitions": 11,
+      "results": 0,
+      "proofs": 0
+    },
+    {
+      "topic": 17,
+      "definitions": 6,
+      "results": 0,
+      "proofs": 0
+    },
+    {
+      "topic": 18,
+      "definitions": 11,
+      "results": 0,
+      "proofs": 0
+    },
+    {
+      "topic": 19,
+      "definitions": 14,
+      "results": 0,
+      "proofs": 0
+    },
+    {
+      "topic": 20,
+      "definitions": 7,
+      "results": 0,
+      "proofs": 0
+    },
+    {
+      "topic": 21,
+      "definitions": 17,
+      "results": 6,
+      "proofs": 6
+    },
+    {
+      "topic": 22,
+      "definitions": 12,
+      "results": 4,
+      "proofs": 4
+    },
+    {
+      "topic": 23,
+      "definitions": 12,
+      "results": 0,
+      "proofs": 0
+    },
+    {
+      "topic": 24,
+      "definitions": 11,
+      "results": 8,
+      "proofs": 8
+    },
+    {
+      "topic": 25,
+      "definitions": 21,
+      "results": 0,
+      "proofs": 0
+    },
+    {
+      "topic": 26,
+      "definitions": 24,
+      "results": 0,
+      "proofs": 0
+    },
+    {
+      "topic": 27,
+      "definitions": 18,
+      "results": 0,
+      "proofs": 0
+    },
+    {
+      "topic": 28,
+      "definitions": 6,
+      "results": 6,
+      "proofs": 6
+    },
+    {
+      "topic": 29,
+      "definitions": 5,
+      "results": 9,
+      "proofs": 9
+    },
+    {
+      "topic": 30,
+      "definitions": 2,
+      "results": 10,
+      "proofs": 10
+    },
+    {
+      "topic": 31,
+      "definitions": 11,
+      "results": 12,
+      "proofs": 12
+    },
+    {
+      "topic": 32,
+      "definitions": 2,
+      "results": 8,
+      "proofs": 9
+    },
+    {
+      "topic": 33,
+      "definitions": 6,
+      "results": 10,
+      "proofs": 10
+    },
+    {
+      "topic": 34,
+      "definitions": 5,
+      "results": 5,
+      "proofs": 5
+    },
+    {
+      "topic": 35,
+      "definitions": 9,
+      "results": 7,
+      "proofs": 7
+    }
+  ],
+  "totals": {
+    "definitions": 378,
+    "results": 168,
+    "proofs": 170
+  },
+  "errors": [],
+  "scope": "Checks LaTeX structure and proof presence; does not certify mathematical correctness or full syllabus coverage."
+}

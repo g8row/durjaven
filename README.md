@@ -109,3 +109,57 @@ filenames — and the PDFs are additionally stale on questions 6 and 8, where th
 photographs are the correct source. Questions 11 and 12 still have no primary source
 in the corpus; their supplemental chapters are therefore marked separately.
 See [CORPUS.md](docs/CORPUS.md) §3–4.
+
+## External comparison material
+
+[StateExamCS](https://github.com/hristovalev7/StateExamCS) is a useful companion
+to this book, especially its
+[handwritten summaries](https://github.com/hristovalev7/StateExamCS/tree/main/Genuine%20Stupidity),
+[consultation notes](https://github.com/hristovalev7/StateExamCS/tree/main/%D0%9A%D0%BE%D0%BD%D1%81%D1%83%D0%BB%D1%82%D0%B0%D1%86%D0%B8%D0%B8),
+[C++ data-structure examples](https://github.com/hristovalev7/StateExamCS/tree/main/Data%20Structures),
+[Haskell and Scheme examples](https://github.com/hristovalev7/StateExamCS/tree/main/Functional%20Programming),
+and the
+[8 July 2026 practical exam](https://github.com/hristovalev7/StateExamCS/blob/main/8July2026.pdf).
+Treat these as comparison and practice material, not as the authority for this
+book: that repository follows the July 2026 syllabus, while this project follows
+the revision accepted with FS protocol No. 6/30.06.2025 and applicable from the
+September 2026 session.
+
+The mathematics numbering changed. When following a StateExamCS link or file,
+translate its topic number as follows:
+
+| StateExamCS (July 2026) | This book (September 2026) | Subject |
+|---:|---:|---|
+| 28 | 30 | Symmetric operators |
+| 29 | 31 | Symmetric and alternating groups |
+| 30 | 32 | Fermat, mean-value theorems, Taylor |
+| 31 | 33 | Definite integral and Newton–Leibniz |
+| 32 | 28 | Lines in the plane |
+| 33 | 29 | Lines and planes in space |
+| 34 | 34 | Iterative methods |
+| 35 | 35 | Discrete distributions; check the revised scope |
+
+StateExamCS is licensed
+[CC BY-NC-ND 4.0](https://github.com/hristovalev7/StateExamCS/blob/main/LICENSE).
+Its files are therefore linked here rather than copied, edited, or merged into
+the LaTeX sources. Independently verify any substantive claim against the
+official annotation and listed literature before changing a chapter.
+
+## Definition and proof formatting (5 September 2026)
+
+The book now uses closed frames for proofs and proper theorem environments for
+all 378 boxed definitions. Every one of the 168 numbered mathematical results
+has a proof block; there are 170 proof blocks in total. This revision added or
+separately marked 56 proofs and repaired ten malformed definition macros in
+Topic 18. The build checks this structure before compiling.
+
+```bash
+.venv/bin/python scripts/check_structure.py --report docs/definition_proof_audit.json
+.venv/bin/python scripts/build_topics.py
+.venv/bin/python scripts/check_refs.py
+```
+
+`check_structure.py` checks environments, proof presence and box styles; it does
+not certify mathematical correctness or complete syllabus coverage. The
+annotation extractor now detects bold topic numbers, so numbered exercises no
+longer overwrite Topics 2–5. See `docs/DEFINITIONS_PROOFS.md` for the audit scope.

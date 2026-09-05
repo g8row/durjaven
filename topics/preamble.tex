@@ -164,6 +164,8 @@
 \newtheorem{keythm}[thm]{Теорема}
 \newtheorem{keydefn}[thm]{Дефиниция}
 \newtheorem{keylem}[thm]{Лема}
+\newtheorem{keyaxiom}[thm]{Аксиома}
+\newtheorem{keyscheme}[thm]{Схема}
 
 \newtheoremstyle{lecremark}
   {\topsep}{\topsep}{\normalfont}{0pt}{\itshape}{.}{0.5em}{}
@@ -225,6 +227,8 @@
 \tcolorboxenvironment{keythm} {leckeybox}
 \tcolorboxenvironment{keydefn}{leckeybox}
 \tcolorboxenvironment{keylem} {leckeybox}
+\tcolorboxenvironment{keyaxiom}{leckeybox}
+\tcolorboxenvironment{keyscheme}{leckeybox}
 
 % Supplement tier: dashed violet frame, no fill — visibly outside the lecture record.
 \tcolorboxenvironment{supp}{enhanced, breakable, lines before break=\lecbreakminlines,
@@ -238,11 +242,12 @@
 \tcolorboxenvironment{example}{blanker, breakable,
   borderline west={1.2pt}{0pt}{exrule},
   left=4mm, top=1mm, bottom=1mm, before skip=0.7em, after skip=0.7em}
-\tcolorboxenvironment{proof}{blanker, breakable,
-  borderline west={0.6pt}{0pt}{proofrule},
-  left=4mm, top=0.6mm, bottom=0.6mm, before skip=0.7em, after skip=0.7em}
+\tcolorboxenvironment{proof}{enhanced, breakable,
+  colback=white, colframe=proofrule, boxrule=0.6pt, arc=1.5mm,
+  left=2.6mm, right=2.6mm, top=1.4mm, bottom=1.4mm,
+  before skip=0.7em, after skip=0.7em}
 
-% Proofs: unboxed, with an automatic flush-right QED on every one of them.
+% Proofs have a complete frame and an automatic flush-right QED.
 % The driver localizes \proofname after \begin{document}, once polyglossia has
 % installed its Bulgarian captions.
 \renewcommand{\qedsymbol}{$\square$}
