@@ -1,5 +1,10 @@
 # ДИ — държавен изпит notes
 
+**[Read the book online](https://g8row.github.io/durjaven/)** ·
+**[raw PDF](https://g8row.github.io/durjaven/darzhaven-izpit-kn.pdf)** — the
+first is a pdf.js reader with the book's outline in a sidebar; the second opens
+in your browser's own PDF viewer, or downloads.
+
 Turning a pile of exam material — 365 PDF pages and 165 photographs, in three
 different states of legibility — into one compilable Bulgarian LaTeX book
 covering all 35 topics of the state exam.
@@ -93,16 +98,11 @@ repository as it stands, so the site is the repo: `/` redirects to the pdf.js
 viewer in `pdfjs-wrapper/`, and `/darzhaven-izpit-kn.pdf` is the raw file.
 Pushing a rebuilt PDF republishes it.
 
-> The site builds and serves correctly, but is **not reachable yet**. The
-> account's Pages custom domain `g8row.me` has no DNS records, and every URL
-> under `g8row.github.io` redirects there — so the link above 301s into a
-> domain that does not resolve. Either point `g8row.me` at Pages (`A` records
-> to `185.199.108–111.153`), or clear the custom domain on the
-> `g8row.github.io` repository; either fix makes the link work.
-
 The viewer gives what the built-in PDF plugins do not: the book's own outline
 in a sidebar, so 499 pages can be navigated by question number rather than by
-scrollbar. `?file=` points it at another PDF in the repo.
+scrollbar. Zoom is `−` / `+` / `0` on the keyboard or in the toolbar, where
+there is also a download button; `?file=` points the viewer at another PDF in
+the repo.
 
 Locally, the same thing:
 

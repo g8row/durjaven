@@ -141,7 +141,7 @@
         backdrop-filter: blur(8px);
       }
 
-      button.toolbar-button {
+      .toolbar-button {
         display: grid;
         width: 2.25rem;
         height: 2.25rem;
@@ -152,7 +152,29 @@
         border: 1px solid #505050;
         border-radius: 0.35rem;
         font-size: 1.15rem;
+        text-decoration: none;
+        user-select: none;
         cursor: pointer;
+      }
+
+      .toolbar-button:hover,
+      .toolbar-button:focus-visible {
+        background: #3d3d3d;
+        outline: none;
+      }
+
+      .toolbar-group {
+        display: flex;
+        gap: 0.35rem;
+        align-items: center;
+        margin-left: auto;
+      }
+
+      /* Wide enough for "100%" without the toolbar twitching as it changes. */
+      #zoom-reset {
+        width: 3.6rem;
+        font-size: 0.8rem;
+        font-variant-numeric: tabular-nums;
       }
 
       header h1 {
@@ -166,7 +188,6 @@
       }
 
       #page-status {
-        margin-left: auto;
         color: #c8c8c8;
         font-size: 0.875rem;
         white-space: nowrap;
@@ -175,7 +196,7 @@
       #pages {
         display: flex;
         flex-direction: column;
-        align-items: center;
+        align-items: safe center;
         gap: 1rem;
         min-height: calc(100dvh - var(--toolbar-height));
         padding: 1rem;
@@ -218,6 +239,11 @@
       }
 
       #backdrop { display: none; }
+
+      /* The toolbar keeps its controls; the title is the expendable part. */
+      @media (max-width: 620px) {
+        header h1 { display: none; }
+      }
 
       @media (max-width: 760px) {
         body,
@@ -262,6 +288,16 @@
           aria-label="Покажи съдържанието"
         >☰</button>
         <h1>Държавен изпит — Компютърни науки</h1>
+        <div class="toolbar-group">
+          <button id="zoom-out" class="toolbar-button" type="button"
+                  title="Намали (−)" aria-label="Намали">−</button>
+          <button id="zoom-reset" class="toolbar-button" type="button"
+                  title="Побери в прозореца (0)" aria-label="Побери в прозореца">100%</button>
+          <button id="zoom-in" class="toolbar-button" type="button"
+                  title="Увеличи (+)" aria-label="Увеличи">+</button>
+          <a id="download" class="toolbar-button" download
+             title="Свали PDF файла" aria-label="Свали PDF файла">⭳</a>
+        </div>
         <span id="page-status">Зареждане…</span>
       </header>
       <main id="pages"></main>
@@ -285,6 +321,10 @@
       const pageStatus = document.querySelector("#page-status");
       const errorElement = document.querySelector("#error");
       const toggleSidebar = document.querySelector("#toggle-sidebar");
+      const zoomOut = document.querySelector("#zoom-out");
+      const zoomIn = document.querySelector("#zoom-in");
+      const zoomReset = document.querySelector("#zoom-reset");
+      const downloadLink = document.querySelector("#download");
       const requestedFile = new URL(location.href).searchParams.get("file");
       const pdfUrl = new URL(
         requestedFile || "../darzhaven-izpit-kn.pdf",
@@ -293,7 +333,9 @@
 
       let pdf;
       let baseViewport;
-      let fitScale = 1;
+      let baseFit = 1;      // scale that fits a page in the window
+      let zoom = 1;         // user multiplier on top of it; 1 == fit
+      let fitScale = 1;     // what pages are actually rendered at
       let renderObserver;
       let currentPageObserver;
       let resizeTimer;
@@ -316,16 +358,20 @@
       if (matchMedia("(max-width: 760px)").matches) setSidebar(false);
       else setSidebar(true);
 
-      function updatePageStatus() {
-        let currentPage = 1;
+      function currentPage() {
+        let page = 1;
         let largestRatio = 0;
         for (const [pageNumber, ratio] of visibility) {
           if (ratio > largestRatio) {
-            currentPage = pageNumber;
+            page = pageNumber;
             largestRatio = ratio;
           }
         }
-        pageStatus.textContent = `${currentPage} / ${pdf.numPages}`;
+        return page;
+      }
+
+      function updatePageStatus() {
+        pageStatus.textContent = `${currentPage()} / ${pdf.numPages}`;
       }
 
       async function renderPage(shell) {
@@ -370,10 +416,11 @@
         const toolbarHeight = document.querySelector("header").offsetHeight;
         const availableHeight = Math.max(240, scroller.clientHeight - toolbarHeight - 32);
         const availableWidth = Math.max(180, scroller.clientWidth - 32);
-        fitScale = Math.min(
+        baseFit = Math.min(
           availableHeight / baseViewport.height,
           availableWidth / baseViewport.width,
         );
+        fitScale = baseFit * zoom;
         const width = Math.floor(baseViewport.width * fitScale);
         const height = Math.floor(baseViewport.height * fitScale);
 
@@ -384,6 +431,39 @@
           if (shell.dataset.nearby === "true") renderPage(shell);
         }
       }
+
+      const MIN_ZOOM = 0.25;
+      const MAX_ZOOM = 6;
+
+      function setZoom(next) {
+        const clamped = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next));
+        if (!pdf || Math.abs(clamped - zoom) < 0.001) return;
+        // Re-sizing every page moves the scroll offset, so hold on to the page
+        // being read and come back to it -- otherwise zooming a 499-page book
+        // lands somewhere unrelated.
+        const anchor = currentPage();
+        zoom = clamped;
+        sizePages();
+        goToPage(anchor, "auto");
+        updateZoomLabel();
+      }
+
+      function updateZoomLabel() {
+        zoomReset.textContent = `${Math.round(zoom * 100)}%`;
+      }
+
+      zoomIn.addEventListener("click", () => setZoom(zoom * 1.25));
+      zoomOut.addEventListener("click", () => setZoom(zoom / 1.25));
+      zoomReset.addEventListener("click", () => setZoom(1));
+
+      window.addEventListener("keydown", (event) => {
+        if (event.ctrlKey || event.metaKey || event.altKey) return;
+        if (event.key === "+" || event.key === "=") setZoom(zoom * 1.25);
+        else if (event.key === "-") setZoom(zoom / 1.25);
+        else if (event.key === "0") setZoom(1);
+        else return;
+        event.preventDefault();
+      });
 
       function createPageShells() {
         const fragment = document.createDocumentFragment();
@@ -457,13 +537,13 @@
         return null;
       }
 
-      function goToPage(pageNumber) {
+      function goToPage(pageNumber, behavior = "smooth") {
         const target = pages.children[pageNumber - 1];
         if (!target) return;
         const toolbarHeight = document.querySelector("header").offsetHeight;
         scroller.scrollTo({
           top: target.offsetTop - toolbarHeight - 16,
-          behavior: "smooth",
+          behavior,
         });
         pageStatus.textContent = `${pageNumber} / ${pdf.numPages}`;
         if (matchMedia("(max-width: 760px)").matches) setSidebar(false);
@@ -534,8 +614,21 @@
 
       window.addEventListener("resize", () => {
         clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(sizePages, 150);
+        resizeTimer = setTimeout(() => {
+          if (!pdf) return;
+          const anchor = currentPage();
+          sizePages();
+          goToPage(anchor, "auto");
+        }, 150);
       });
+
+      // Not hardcoded: ?file= can point the viewer at another PDF, and the
+      // download button has to follow it.
+      downloadLink.href = pdfUrl.href;
+      downloadLink.setAttribute(
+        "download",
+        decodeURIComponent(pdfUrl.pathname.split("/").pop() || "book.pdf"),
+      );
 
       try {
         pdf = await pdfjsDist.getDocument({ url: pdfUrl.href }).promise;
@@ -543,6 +636,7 @@
         baseViewport = firstPage.getViewport({ scale: 1 });
         createPageShells();
         sizePages();
+        updateZoomLabel();
         observePages();
         await loadOutline();
       } catch (cause) {
