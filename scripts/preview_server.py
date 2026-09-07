@@ -12,8 +12,8 @@ are blocked under file://.
 
     python3 scripts/preview_server.py [port]     # default 8801
 
-"/" redirects to the pdf.js viewer with the chapter outline;
-/darzhaven-izpit-kn.pdf serves the raw file for a browser's own PDF plugin.
+"/" lands on the pdf.js viewer with the chapter outline, via the root
+index.html; /darzhaven-izpit-kn.pdf serves the raw file instead.
 """
 import functools
 import http.server
@@ -26,17 +26,9 @@ PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8801
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
-    # "/" is the whole point of the server, so send it to the viewer rather
-    # than to a directory listing of the repository. The preview launcher can
-    # only be given a bare origin for localhost, so the redirect has to live
-    # here and not in the URL.
-    def do_GET(self):
-        if self.path in ("/", "/index.html"):
-            self.send_response(302)
-            self.send_header("Location", "/pdfjs-wrapper/")
-            self.end_headers()
-            return
-        super().do_GET()
+    # "/" lands on the book rather than a directory listing because the root
+    # index.html redirects to the viewer -- the same file that does it on
+    # GitHub Pages, so hosted and local behave identically.
 
     # The book is rebuilt in place and the viewer is edited while it is open;
     # a cached copy of either is worse than useless.

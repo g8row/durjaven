@@ -87,23 +87,31 @@ others — `--mode`, `--provider`, `--model`, `--base-url`.
 
 ## Reading it in a browser
 
+**[g8row.github.io/durjaven](https://g8row.github.io/durjaven/)** — the current
+`main` build, no checkout and nothing to install. GitHub Pages serves this
+repository as it stands, so the site is the repo: `/` redirects to the pdf.js
+viewer in `pdfjs-wrapper/`, and `/darzhaven-izpit-kn.pdf` is the raw file.
+Pushing a rebuilt PDF republishes it.
+
+The viewer gives what the built-in PDF plugins do not: the book's own outline
+in a sidebar, so 499 pages can be navigated by question number rather than by
+scrollbar. `?file=` points it at another PDF in the repo.
+
+Locally, the same thing:
+
 ```bash
-scripts/preview.sh
+scripts/preview.sh          # or: scripts/preview.sh 9001
 ```
 
-Serves the repository and opens `pdfjs-wrapper/` — pdf.js with the book's own
-outline in a sidebar, so 499 pages can be navigated by question number rather
-than by scrollbar. `scripts/preview.sh 9001` picks another port; an existing
-server on the port is reused rather than fought over.
-
 A server is required, not a convenience: pdf.js loads as an ES module and
-fetches the PDF, and both are blocked under `file://`. If all you want is the
-raw file, `open darzhaven-izpit-kn.pdf` is shorter.
+fetches the PDF, and both are blocked under `file://`. The root `index.html`
+does the redirect in both places, so hosted and local behave identically. If
+all you want is the raw file, `open darzhaven-izpit-kn.pdf` is shorter.
 
-`.claude/launch.json` has a `book` preview that attaches to the same port, so
-the Browser pane opens the viewer once the server is up. It is attach-only:
-the sandboxed preview runner is denied read access to this project, so it
-cannot start the server itself — run `scripts/preview.sh` first.
+`.claude/launch.json` has a `book` preview that attaches to port 8801, so the
+Browser pane opens the viewer once the server is up. It is attach-only: the
+sandboxed preview runner is denied read access to this project, so it cannot
+start the server itself — run `scripts/preview.sh` first.
 
 ## Status
 
