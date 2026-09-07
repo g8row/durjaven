@@ -85,6 +85,26 @@ Every model-using stage goes through `src/backends.py`, so each can run locally
 (MLX-VLM, Ollama, vLLM) or in the cloud (`agy`, Gemini) independently of the
 others — `--mode`, `--provider`, `--model`, `--base-url`.
 
+## Reading it in a browser
+
+```bash
+scripts/preview.sh
+```
+
+Serves the repository and opens `pdfjs-wrapper/` — pdf.js with the book's own
+outline in a sidebar, so 499 pages can be navigated by question number rather
+than by scrollbar. `scripts/preview.sh 9001` picks another port; an existing
+server on the port is reused rather than fought over.
+
+A server is required, not a convenience: pdf.js loads as an ES module and
+fetches the PDF, and both are blocked under `file://`. If all you want is the
+raw file, `open darzhaven-izpit-kn.pdf` is shorter.
+
+`.claude/launch.json` has a `book` preview that attaches to the same port, so
+the Browser pane opens the viewer once the server is up. It is attach-only:
+the sandboxed preview runner is denied read access to this project, so it
+cannot start the server itself — run `scripts/preview.sh` first.
+
 ## Status
 
 Phase 1 extraction is done and has been run over the whole corpus. The topic

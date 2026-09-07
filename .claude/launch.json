@@ -1,0 +1,16 @@
+{
+  "version": "0.0.1",
+  "_comment": [
+    "Attach-only: no command. The sandboxed preview runner cannot read files in",
+    "this project (its python3 is denied even an absolute path), so it cannot",
+    "start the server itself. Run scripts/preview.sh first -- it serves the repo",
+    "on 8801 -- and this entry then opens the viewer against it."
+  ],
+  "configurations": [
+    {
+      "name": "book",
+      "port": 8801,
+      "url": "http://localhost:8801"
+    }
+  ]
+}
