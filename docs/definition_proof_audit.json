@@ -9,14 +9,14 @@
     {
       "topic": 2,
       "definitions": 6,
-      "results": 16,
-      "proofs": 16
+      "results": 21,
+      "proofs": 21
     },
     {
       "topic": 3,
       "definitions": 23,
-      "results": 9,
-      "proofs": 9
+      "results": 11,
+      "proofs": 11
     },
     {
       "topic": 4,
@@ -27,8 +27,8 @@
     {
       "topic": 5,
       "definitions": 5,
-      "results": 4,
-      "proofs": 5
+      "results": 7,
+      "proofs": 8
     },
     {
       "topic": 6,
@@ -38,21 +38,21 @@
     },
     {
       "topic": 7,
-      "definitions": 11,
+      "definitions": 12,
       "results": 6,
       "proofs": 6
     },
     {
       "topic": 8,
-      "definitions": 3,
+      "definitions": 4,
       "results": 12,
       "proofs": 12
     },
     {
       "topic": 9,
-      "definitions": 11,
-      "results": 0,
-      "proofs": 0
+      "definitions": 18,
+      "results": 1,
+      "proofs": 1
     },
     {
       "topic": 10,
@@ -80,7 +80,7 @@
     },
     {
       "topic": 14,
-      "definitions": 13,
+      "definitions": 16,
       "results": 0,
       "proofs": 0
     },
@@ -92,7 +92,7 @@
     },
     {
       "topic": 16,
-      "definitions": 11,
+      "definitions": 12,
       "results": 0,
       "proofs": 0
     },
@@ -104,9 +104,9 @@
     },
     {
       "topic": 18,
-      "definitions": 11,
-      "results": 0,
-      "proofs": 0
+      "definitions": 14,
+      "results": 1,
+      "proofs": 1
     },
     {
       "topic": 19,
@@ -122,9 +122,9 @@
     },
     {
       "topic": 21,
-      "definitions": 17,
-      "results": 6,
-      "proofs": 6
+      "definitions": 18,
+      "results": 7,
+      "proofs": 7
     },
     {
       "topic": 22,
@@ -176,9 +176,9 @@
     },
     {
       "topic": 30,
-      "definitions": 2,
-      "results": 10,
-      "proofs": 10
+      "definitions": 10,
+      "results": 12,
+      "proofs": 12
     },
     {
       "topic": 31,
@@ -188,7 +188,7 @@
     },
     {
       "topic": 32,
-      "definitions": 2,
+      "definitions": 3,
       "results": 8,
       "proofs": 9
     },
@@ -212,9 +212,9 @@
     }
   ],
   "totals": {
-    "definitions": 378,
-    "results": 168,
-    "proofs": 170
+    "definitions": 404,
+    "results": 183,
+    "proofs": 185
   },
   "errors": [],
   "scope": "Checks LaTeX structure and proof presence; does not certify mathematical correctness or full syllabus coverage."

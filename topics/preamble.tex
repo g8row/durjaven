@@ -13,11 +13,16 @@
 % rather than merely contain the glyphs. PT Serif was designed at ParaType for
 % Cyrillic and is the right first choice; the fallbacks are ordered by how well
 % they set Bulgarian, not by how common they are.
+% Ligatures=TeX is not optional here. Without it fontspec leaves `` '' as
+% literal backticks and --- as three hyphens on the page, which is what the
+% whole book had been doing. It is set on every text family below for the same
+% reason; the MONOSPACE family is deliberately left without it, so that code in
+% \texttt and verbatim keeps -- and quotes exactly as typed.
 \IfFontExistsTF{PT Serif}
-  {\setmainfont{PT Serif}}
+  {\setmainfont{PT Serif}[Ligatures=TeX]}
   {\IfFontExistsTF{Times New Roman}
-    {\setmainfont{Times New Roman}}
-    {\setmainfont{Liberation Serif}}}
+    {\setmainfont{Times New Roman}[Ligatures=TeX]}
+    {\setmainfont{Liberation Serif}[Ligatures=TeX]}}
 
 % polyglossia will not typeset a single Cyrillic word until it is told which
 % font to use for the script — it does not infer it from \setmainfont, and the
@@ -27,11 +32,11 @@
 % Cyrillic word fails exactly as \textrm does, and folder names and identifiers
 % in this book are Bulgarian. PT Serif/Sans/Mono are one designed family.
 \IfFontExistsTF{PT Serif}
-  {\newfontfamily\cyrillicfont{PT Serif}
-   \newfontfamily\cyrillicfontsf{PT Sans}
+  {\newfontfamily\cyrillicfont{PT Serif}[Ligatures=TeX]
+   \newfontfamily\cyrillicfontsf{PT Sans}[Ligatures=TeX]
    \newfontfamily\cyrillicfonttt{PT Mono}[Scale=MatchLowercase]
    \setmonofont{PT Mono}[Scale=MatchLowercase]}
-  {\newfontfamily\cyrillicfont{Times New Roman}
+  {\newfontfamily\cyrillicfont{Times New Roman}[Ligatures=TeX]
    \newfontfamily\cyrillicfonttt{Menlo}[Scale=MatchLowercase]
    \setmonofont{Menlo}[Scale=MatchLowercase]}
 
@@ -252,6 +257,61 @@
 % installed its Bulgarian captions.
 \renewcommand{\qedsymbol}{$\square$}
 
+% --- "По конспекта" opening panel -------------------------------------------
+% The colour tiers above say what KIND of mathematical object a box holds. They
+% cannot say what the official annotation ASKS FOR — a definition, a statement
+% with no proof, a full proof, a construction, pseudocode, an implementation, a
+% complexity analysis, a worked task type or a drawing. That is a different
+% axis, and it is the one a student revising against the конспект needs first,
+% so it is spelled out in words at the top of every chapter rather than encoded
+% in a colour. Slate, deliberately quieter than the three content tiers: this
+% panel is a map, not material to be learnt.
+\definecolor{konframe}{RGB}{88,96,110}
+\definecolor{konback}{RGB}{244,245,247}
+\newtcolorbox{konspekt}{enhanced, breakable, lines before break=6,
+  colback=konback, colframe=konframe, boxrule=0.7pt, arc=2.4mm,
+  left=2.6mm, right=2.6mm, top=1.4mm, bottom=1.6mm,
+  before skip=0.4em, after skip=1.1em,
+  title={\normalfont\bfseries\small По конспекта: какво трябва да мога},
+  coltitle=white, colbacktitle=konframe}
+
+% One obligation per line: the required ACTION first, then where the chapter
+% discharges it. "--- липсва" is a legitimate right-hand side; a panel that
+% cannot honestly point somewhere must say so rather than quietly omit the row.
+\newcommand{\kreq}[2]{\par\noindent\textbf{#1:} #2}
+
+% Panel targets are LINKS, not printed strings: the reader taps "§3.7, стр. 60"
+% and lands there. \ref/\pageref rather than a typed number, so a section that
+% moves cannot leave the panel pointing at the wrong place — and check_refs.py
+% fails the build if a target ever disappears. The starred forms keep the whole
+% phrase inside ONE \hyperref instead of nesting links.
+\newcommand{\kref}[1]{\hyperref[s:#1]{\S\ref*{s:#1}, стр.~\pageref*{s:#1}}}
+\newcommand{\kr}[1]{\hyperref[s:#1]{\S\ref*{s:#1}}}
+\newcommand{\krange}[2]{\hyperref[s:#1]{\S\ref*{s:#1}--\S\ref*{s:#2}, стр.~\pageref*{s:#1}}}
+\newcommand{\kfig}[1]{\hyperref[f:#1]{фиг.~\ref*{f:#1}, стр.~\pageref*{f:#1}}}
+
+% The конспект's own exam-selection notes (questions 6, 7, 8, 18). Gold, like
+% the landmark tier, because missing one changes what a student walks in with.
+% It says what may be DRAWN on the exam, not what may be skipped in revision.
+\newcommand{\kselect}[1]{\par\medskip\noindent
+  \begin{tcolorbox}[enhanced, breakable, colback=keyback, colframe=keyframe,
+    boxrule=0.7pt, leftrule=2.2mm, arc=1.5mm,
+    left=2.2mm, right=2.2mm, top=1.2mm, bottom=1.2mm,
+    before skip=0.2em, after skip=0.4em]
+  \textcolor{keyframe}{\ensuremath{\bigstar}}\ \textbf{Бележка на конспекта:} #1
+  \end{tcolorbox}}
+
+% Material the chapter carries that the annotation does NOT require at this
+% depth. Same violet dagger as the \supp tier, so the two agree on sight.
+\newcommand{\kextra}[1]{\par\noindent
+  \textcolor{suppframe}{\ensuremath{\dagger}\ \textbf{Допълнително:}}\ #1}
+
+% Prerequisites: recalled here, examined elsewhere or not at all.
+\newcommand{\kprereq}[1]{\par\noindent\textbf{Предварително (не се изпитва тук):}\ #1}
+
+% Honest coverage status. Never a "complete" badge earned by mere presence.
+\newcommand{\kstatus}[1]{\par\medskip\noindent\textit{Статус на покритието:}\ #1}
+
 % --- links ------------------------------------------------------------------
 \usepackage{hyperref}   % load last
 \hypersetup{
@@ -259,3 +319,9 @@
   linktoc=all, bookmarksnumbered=true, bookmarksopen=true, unicode=true,
   bookmarksdepth=3,   % printed TOC stays lean; the PDF outline keeps full depth
   pdfauthor={}}
+% A long unbroken URL in the bibliography sticks out into the margin, because
+% \url may only break after a slash by default and a 32-character hash offers
+% no slash at all. xurl lifts that restriction; the \Urlmuskip lets the glue
+% around the break stretch instead of producing an overfull line.
+\usepackage{xurl}
+\Urlmuskip=0mu plus 1mu\relax
