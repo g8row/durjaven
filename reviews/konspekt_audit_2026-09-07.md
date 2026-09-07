@@ -295,8 +295,8 @@ Beyond the findings, three changes were made that the audit did not ask for:
 - `Ligatures=TeX` is now set on the text fonts. Without it fontspec had been printing
   ``` `` ''` ``` as literal backticks and `---` as three hyphens throughout the book; the 39
   TeX-style quotes in the bodies were converted to Bulgarian `„…“` at the same time.
-- `xurl` is loaded so the one long bibliography URL breaks. The whole 498-page PDF now has
-  zero lines protruding past the right margin.
+- `xurl` is loaded so the one long bibliography URL breaks. The PDF has zero lines
+  protruding past the right margin.
 
 ### Second pass — review findings on the revision
 
@@ -308,7 +308,8 @@ Three defects were found in the revision itself and are now fixed.
 | Opening panels had no links; dense entries needed splitting | **Fixed.** Every section and subsection in the book now carries a label (568 of them), and panel targets are `\ref`/`\pageref` links rather than typed numbers, so a section that moves cannot leave a panel pointing at the wrong place — and the build fails if a target disappears. The 35 opening pages now carry 277 internal links, each resolving to a real destination; Topic 34's entries link to the figures themselves. Dense entries were split to one obligation per line — Topic 1's single seven-group definition blob is now six lines. |
 | Topic 12's program ignored `fwrite` failures and could exit 0 after losing output | **Fixed.** `fwrite`'s return is checked, `fflush`/`ferror` run before the exit code is decided, and success now requires both a zero child status and an intact output stream. Confirmed against a pre-fix build: with a read-only output descriptor the old program exits 0 silently, the new one exits 1 with a diagnostic. Both programs still compile clean under `-Wall -Wextra`. |
 
-The whole 498-page PDF still has no line protruding past the right margin, and no `??` anywhere.
+The book is 499 pages after this pass — the split panels added one. It still has no line
+protruding past the right margin, and no `??` anywhere.
 
 ### Not resolved
 
